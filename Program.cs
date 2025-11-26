@@ -20,7 +20,7 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
-        Description = "Введите JWT токен. Пример: Bearer {token}",
+        Description = "Введите JWT токен.",
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
@@ -46,6 +46,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITopicClassRepository, TopicClassRepository>();
+builder.Services.AddScoped<ITopicClassService, TopicClassService>();
 builder.Services.AddSingleton<JwtProvider>();
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer(options =>
