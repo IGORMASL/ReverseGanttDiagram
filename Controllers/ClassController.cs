@@ -7,16 +7,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using System.ComponentModel.Design;
+using System.Reflection.Metadata.Ecma335;
+using System.Security.Claims;
 
 namespace GanttChartAPI.Controllers
 {
     [Route("api/class")]
     [ApiController]
-    public class TopicClassController : ControllerBase
+    public class ClassController : ControllerBase
     {
         private readonly ITopicClassService _service;
 
-        public TopicClassController(ITopicClassService service)
+        public ClassController(ITopicClassService service)
         {
             _service = service;
         }
@@ -55,6 +57,16 @@ namespace GanttChartAPI.Controllers
         {
             var topic = await _service.GetByIdAsync(id);
             return Ok(topic);
+        }
+        [HttpGet("user")]
+        [Authorize]
+        public async Task<ActionResult<UserClassViewModel>> GetUserClasses()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var userId = Guid.Parse(userIdClaim.Value);
+            var classes = await _service.GetUserClasses(userId);
+            return Ok(classes);
+            
         }
 
     }

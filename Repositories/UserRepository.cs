@@ -1,6 +1,8 @@
 ﻿using GanttChartAPI.Data;
 using GanttChartAPI.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace GanttChartAPI.Repositories
 {
@@ -19,6 +21,15 @@ namespace GanttChartAPI.Repositories
         {
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+        }
+        public async Task<List<User>> GetAllAsync() {
+            return await _context.Users.ToListAsync();
+        }
+        public async Task<List<ClassRole>> GetUserClassRoles(Guid userId)
+        {
+            return await _context.ClassRoles
+                .Where(r => r.UserId == userId)
+                .ToListAsync();
         }
     }
 }

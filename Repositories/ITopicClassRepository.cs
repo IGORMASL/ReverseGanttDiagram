@@ -1,5 +1,6 @@
 ﻿using GanttChartAPI.DTOs;
 using GanttChartAPI.Models;
+using GanttChartAPI.ViewModels;
 
 namespace GanttChartAPI.Repositories
 {
@@ -12,6 +13,6 @@ namespace GanttChartAPI.Repositories
         Task<List<TopicClass>> GetAllAsync();
         Task AddTeacherAsync(TeacherRelation relation);
         Task AddStudentAsync(StudentRelation relation);
-
+        Task<List<UserClassViewModel>> GetUserClasses(Guid userId);
     }
 }

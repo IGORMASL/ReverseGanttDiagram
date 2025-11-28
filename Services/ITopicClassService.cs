@@ -10,5 +10,6 @@ namespace GanttChartAPI.Services
         Task<ClassViewModel> CreateAsync(ClassDto dto);
         Task<ClassViewModel> UpdateAsync(Guid id, ClassDto dto);
         Task DeleteAsync(Guid id);
+        Task<List<UserClassViewModel>> GetUserClasses(Guid userId);
     }
 }

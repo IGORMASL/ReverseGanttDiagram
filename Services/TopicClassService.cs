@@ -2,6 +2,7 @@
 using GanttChartAPI.Models;
 using GanttChartAPI.Repositories;
 using GanttChartAPI.ViewModels;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 
 namespace GanttChartAPI.Services
@@ -72,6 +73,13 @@ namespace GanttChartAPI.Services
             var topic = await repository.GetByIdAsync(id)
                 ?? throw new Exception("Класс не найден");
             await repository.DeleteAsync(topic);
+        }
+
+        public async Task<List<UserClassViewModel>> GetUserClasses(Guid userId)
+        {
+
+            var userClasses = await repository.GetUserClasses(userId);
+            return userClasses;
         }
     }
 }

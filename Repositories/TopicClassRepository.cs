@@ -1,6 +1,7 @@
 ﻿using GanttChartAPI.Data;
 using GanttChartAPI.DTOs;
 using GanttChartAPI.Models;
+using GanttChartAPI.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Update.Internal;
 using System.Runtime.CompilerServices;
@@ -20,6 +21,37 @@ namespace GanttChartAPI.Repositories
         public async Task<List<TopicClass>> GetAllAsync()
         {
             return await dbContext.TopicClasses.ToListAsync();
+        }
+
+        public async Task<List<UserClassViewModel>> GetUserClasses(Guid userId)
+        {
+            var studentRoles = await dbContext.StudentRelations
+                .Include(r => r.TopicClass)
+                .Where(r => r.UserId == userId)
+                .ToListAsync();
+
+            var teacherRoles = await dbContext.TeacherRelations
+                .Include(r => r.TopicClass)
+                .Where(r => r.UserId == userId)
+                .ToListAsync();
+
+            var roles = studentRoles.Cast<ClassRole>()
+                .Concat(teacherRoles.Cast<ClassRole>())
+                .ToList();
+            var userClasses = studentRoles.Select(r => new UserClassViewModel
+            {
+                ClassId = r.ClassId,
+                ClassName = r.TopicClass.Title,
+                Role = 0
+            })
+            .Concat(teacherRoles.Select(r => new UserClassViewModel
+            {
+                ClassId = r.ClassId,
+                ClassName = r.TopicClass.Title,
+                Role = 1
+            }))
+            .ToList();
+            return userClasses;
         }
         public async Task<TopicClass?> GetByIdAsync(Guid id)
         {

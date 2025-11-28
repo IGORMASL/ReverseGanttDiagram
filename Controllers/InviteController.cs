@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 namespace GanttChartAPI.Controllers
 {
-    [Route("api/invite")]
+    [Route("api/class/invite")]
     [ApiController]
     public class InviteController : ControllerBase
     {
@@ -28,15 +28,13 @@ namespace GanttChartAPI.Controllers
                 link = $"https://GanttChart/join?inv={inv.Id}"
             });
         }
-        [HttpPost("use")]
+        [HttpPost("{inviteId}")]
         [Authorize]
-        public async Task<ActionResult> Use(AllowInviteDto dto)
+        public async Task<ActionResult> Use(Guid inviteId)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized("Пользователь не найден в токене");
             var userId = Guid.Parse(userIdClaim.Value);
-            await _service.UseAsync(dto.InviteId, userId);
+            await _service.UseAsync(inviteId, userId);
             return Ok("Вы успешно добавлены в класс");
         }
         [HttpGet]
