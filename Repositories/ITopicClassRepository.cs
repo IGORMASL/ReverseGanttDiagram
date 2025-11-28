@@ -10,6 +10,8 @@ namespace GanttChartAPI.Repositories
         Task DeleteAsync(TopicClass topic);
         Task<TopicClass> GetByIdAsync(Guid id);
         Task<List<TopicClass>> GetAllAsync();
+        Task AddTeacherAsync(TeacherRelation relation);
+        Task AddStudentAsync(StudentRelation relation);
 
     }
 }

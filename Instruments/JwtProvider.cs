@@ -28,7 +28,7 @@ namespace GanttChartAPI.Instruments
 
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim("email", user.Email),
                 new Claim("fullName", user.FullName),
                 new Claim(ClaimTypes.Role, user.Role.ToString())

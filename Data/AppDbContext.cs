@@ -20,6 +20,7 @@ namespace GanttChartAPI.Data
         public DbSet<TaskDependency> TaskDependencies { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<TeamMember> TeamMembers { get; set; }
+        public DbSet<ClassInvite> Invites { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

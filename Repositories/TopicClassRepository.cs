@@ -31,6 +31,16 @@ namespace GanttChartAPI.Repositories
             await dbContext.SaveChangesAsync();
             return topic;
         }
+        public async Task AddStudentAsync(StudentRelation relation)
+        {
+            await dbContext.StudentRelations.AddAsync(relation);
+            await dbContext.SaveChangesAsync();
+        }
+        public async Task AddTeacherAsync(TeacherRelation relation)
+        {
+            await dbContext.TeacherRelations.AddAsync(relation);
+            await dbContext.SaveChangesAsync();
+        }
         public async Task UpdateAsync(Guid id, ClassDto dto)
         {
             var topic = await dbContext.TopicClasses.FirstOrDefaultAsync(x => x.Id == id);
