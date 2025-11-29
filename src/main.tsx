@@ -1,10 +1,14 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import React from "react"
+import ReactDOM from "react-dom/client"
+import App from "./App"
 import './index.css'
-import App from './App.tsx'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+// Находим <div id="root"></div> в index.html
+const rootElement = document.getElementById("root")!
+
+// Подключаем React-приложение в root
+ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+        <App />
+    </React.StrictMode>
 )
