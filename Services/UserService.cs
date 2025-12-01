@@ -7,9 +7,11 @@ namespace GanttChartAPI.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _repo;
-        public UserService(IUserRepository repo) 
+        private readonly ILogger<UserService> _logger;
+        public UserService(IUserRepository repo, ILogger<UserService> logger) 
         { 
-            _repo = repo; 
+            _repo = repo;
+            _logger = logger;
         }
 
         public async Task<List<UserViewModel>> GetAllAsync() { 
