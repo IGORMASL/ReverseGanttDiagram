@@ -56,6 +56,14 @@ namespace GanttChartAPI.Repositories
                 .Where(sr => sr.UserId == userId)
                 .ToListAsync();
         }
+        public async Task<bool> IsUserInClassAsync(Guid userId, Guid classId)
+        {
+            var teacher = await dbContext.TeacherRelations
+                .AnyAsync(tr => tr.UserId == userId && tr.ClassId == classId);
+            var student = await dbContext.StudentRelations
+                .AnyAsync(sr => sr.UserId == userId && sr.ClassId == classId);
+            return teacher || student;
+        }
         public async Task UpdateAsync(Guid id, ClassDto dto)
         {
             var topic = await dbContext.TopicClasses.FirstOrDefaultAsync(x => x.Id == id);

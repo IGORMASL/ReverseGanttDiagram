@@ -44,6 +44,21 @@ namespace GanttChartAPI.Instruments
                 _logger.LogWarning(ex, "Forbidden");
                 await WriteError(context, StatusCodes.Status403Forbidden, ex.Message);
             }
+            catch (InvitationUsedException ex)
+            {
+                _logger.LogWarning(ex, ex.Message);
+                await WriteError(context, StatusCodes.Status400BadRequest, ex.Message);
+            }
+            catch (InvitationExpiredException ex)
+            {
+                _logger.LogWarning(ex, ex.Message);
+                await WriteError(context, StatusCodes.Status400BadRequest, ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, ex.Message);
+                await WriteError(context, StatusCodes.Status400BadRequest, ex.Message);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An unexpected error occurred");

@@ -1,5 +1,6 @@
 ﻿
 using GanttChartAPI.DTOs;
+using GanttChartAPI.Instruments;
 using GanttChartAPI.Services;
 using GanttChartAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,10 @@ namespace GanttChartAPI.Controllers
         private Guid GetUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                throw new UnauthorizedException("Unauthorized(token not found)");
+            }
             return Guid.Parse(userIdClaim.Value);
         }
 

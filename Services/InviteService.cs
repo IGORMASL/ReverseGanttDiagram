@@ -1,4 +1,5 @@
 ﻿using GanttChartAPI.DTOs;
+using GanttChartAPI.Instruments;
 using GanttChartAPI.Models;
 using GanttChartAPI.Repositories;
 using GanttChartAPI.ViewModels;
@@ -11,22 +12,23 @@ namespace GanttChartAPI.Services
     public class InviteService : IInviteService
     {
         private readonly IInviteRepository _repo;
-        private readonly IUserRepository _users;
         private readonly ITopicClassRepository _classes;
 
-        public InviteService(IInviteRepository repo, IUserRepository users, ITopicClassRepository classes)
+        public InviteService(IInviteRepository repo, ITopicClassRepository classes)
         {
             _repo = repo;
-            _users = users;
             _classes = classes;
         }
         public async Task<ClassInvite> CreateAsync(Guid classId, InviteDto dto)
         {
+            if(await _classes.GetByIdAsync(classId) == null)
+                throw new NotFoundException("Такой класс не существует");
             var invite = new ClassInvite
             {
                 Id = Guid.NewGuid(),
                 ClassId = classId,
                 IsTeacherInvite = dto.IsTeacherInvite,
+                IsMultiUse = dto.IsMultiUse,
                 ExpiresAt = DateTime.UtcNow.AddHours(dto.ExpireHours)
             };
             await _repo.AddAsync(invite);
@@ -35,11 +37,13 @@ namespace GanttChartAPI.Services
         public async Task UseAsync(Guid inviteId, Guid userId)
         {
             var invite = await _repo.GetByIdAsync(inviteId)
-                ?? throw new InvalidOperationException("Приглашение больше не существует");
-            if (invite.IsUsed)
-                throw new InvalidOperationException("Приглашение уже использовано");
+                ?? throw new NotFoundException("Приглашение не существует");
+            if (!invite.IsMultiUse && invite.IsUsed)
+                throw new InvitationUsedException();
             if (invite.ExpiresAt < DateTime.UtcNow)
-                throw new InvalidOperationException("Приглашение больше не действительно");
+                throw new InvitationExpiredException();
+            if (await _classes.IsUserInClassAsync(userId, invite.ClassId))
+                throw new InvalidOperationException("Пользователь уже состоит в этом классе");
             if (invite.IsTeacherInvite)
             {
                 var rel = new TeacherRelation
@@ -60,7 +64,8 @@ namespace GanttChartAPI.Services
                 };
                 await _classes.AddStudentAsync(rel);
             }
-            invite.IsUsed = true;
+            if (!invite.IsMultiUse)
+                invite.IsUsed = true;
             await _repo.UpdateAsync(invite);
         }
         public async Task<List<InviteViewModel>> GetAllAsync()
@@ -72,6 +77,7 @@ namespace GanttChartAPI.Services
                 ClassId = i.ClassId,
                 IsTeacherInvite = i.IsTeacherInvite,
                 ExpiresAt = i.ExpiresAt,
+                IsMultiUse = i.IsMultiUse,
                 IsUsed = i.IsUsed
             }).ToList();
         }

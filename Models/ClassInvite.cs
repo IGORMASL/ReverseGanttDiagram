@@ -15,6 +15,7 @@ namespace GanttChartAPI.Models
         public bool IsTeacherInvite { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
+        public bool IsMultiUse { get; set; } = false;
         public bool IsUsed { get; set; } = false;
     }
 }

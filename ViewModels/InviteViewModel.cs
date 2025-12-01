@@ -10,6 +10,7 @@ namespace GanttChartAPI.ViewModels
         public Guid ClassId { get; set; }
         public bool IsTeacherInvite { get; set; }
         public DateTime ExpiresAt { get; set; }
-        public bool IsUsed { get; set; } = false;
+        public bool IsMultiUse { get; set; }
+        public bool IsUsed { get; set; }
     }
 }

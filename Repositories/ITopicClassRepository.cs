@@ -15,5 +15,6 @@ namespace GanttChartAPI.Repositories
         Task AddStudentAsync(StudentRelation relation);
         Task<List<TeacherRelation>> GetTeachersRelationsAsync(Guid userId);
         Task<List<StudentRelation>> GetStudentsRelationsAsync(Guid userId);
+        Task<bool> IsUserInClassAsync(Guid userId, Guid classId);
     }
 }

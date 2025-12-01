@@ -1,4 +1,5 @@
 ﻿using GanttChartAPI.DTOs;
+using GanttChartAPI.Instruments;
 using GanttChartAPI.Services;
 using GanttChartAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -17,6 +18,17 @@ namespace GanttChartAPI.Controllers
         {
             _service = service;
         }
+
+        private Guid GetUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                throw new UnauthorizedException("Unauthorized(token not found)");
+            }
+            return Guid.Parse(userIdClaim.Value);
+        }
+
         [HttpPost("create/{classId}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult> Create(Guid classId, InviteDto dto)
@@ -32,8 +44,7 @@ namespace GanttChartAPI.Controllers
         [Authorize]
         public async Task<ActionResult> Use(Guid inviteId)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            var userId = Guid.Parse(userIdClaim.Value);
+            var userId = GetUserId();
             await _service.UseAsync(inviteId, userId);
             return Ok("Вы успешно добавлены в класс");
         }

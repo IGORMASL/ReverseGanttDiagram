@@ -20,4 +20,13 @@
     {
         public ValidationException(string message) : base(message) { }
     }
+    public class InvitationUsedException : Exception
+    {
+        public InvitationUsedException() : base("Приглашение уже использовано") { }
+    }
+
+    public class InvitationExpiredException : Exception
+    {
+        public InvitationExpiredException() : base("Приглашение больше не действительно") { }
+    }
 }
