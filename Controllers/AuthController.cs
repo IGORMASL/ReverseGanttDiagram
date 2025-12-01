@@ -17,28 +17,15 @@ namespace GanttChartAPI.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<AuthResponseViewModel>> Register([FromBody] DTOs.RegisterDto dto)
         {
-            try
-            {
-                var result = await _service.RegisterAsync(dto);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+           var result = await _service.RegisterAsync(dto);
+           return Ok(result);
         }
+
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseViewModel>> Login([FromBody] DTOs.LoginDto dto)
         {
-            try
-            {
-                var result = await _service.LoginAsync(dto);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var result = await _service.LoginAsync(dto);
+            return Ok(result);
         }
     }
 }

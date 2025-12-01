@@ -24,27 +24,30 @@ namespace GanttChartAPI.Instruments
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var expires = DateTime.UtcNow.AddHours(6);
+            var expires = DateTime.UtcNow.AddHours(2);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim("email", user.Email),
-                new Claim("fullName", user.FullName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Role, user.Role.ToString())
             };
 
-            var token = new JwtSecurityToken(
+            var handler = new JwtSecurityTokenHandler();
+
+            var token = handler.CreateJwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
-                claims: claims,
+                subject: new ClaimsIdentity(claims),
+                notBefore: DateTime.UtcNow,
                 expires: expires,
                 signingCredentials: creds
             );
 
             return new AuthResponseViewModel
             {
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
+                Token = handler.WriteToken(token),
                 ExpiresAt = expires
             };
         }

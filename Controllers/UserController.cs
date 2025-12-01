@@ -31,7 +31,7 @@ namespace GanttChartAPI.Controllers
         public async Task<ActionResult<List<ClassRoleViewModel>>> GetRoles(){
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             var userId = Guid.Parse(userIdClaim.Value);
-            var roles = await _service.GetUserClassRoles(userId);
+            var roles = await _service.GetUserClassRolesAsync(userId);
             return Ok(roles);
         }
         [HttpGet("profile")]

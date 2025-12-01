@@ -8,6 +8,6 @@ namespace GanttChartAPI.Repositories
         Task<User> GetByIdAsync(Guid id);
         Task AddAsync(User user);
         Task<List<User>> GetAllAsync();
-        Task<List<ClassRole>> GetUserClassRoles(Guid userId);
+        Task<List<ClassRole>> GetUserClassRolesAsync(Guid userId);
     }
 }

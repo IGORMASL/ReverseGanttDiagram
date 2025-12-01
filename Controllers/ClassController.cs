@@ -66,7 +66,6 @@ namespace GanttChartAPI.Controllers
             var userId = Guid.Parse(userIdClaim.Value);
             var classes = await _service.GetUserClasses(userId);
             return Ok(classes);
-            
         }
 
     }

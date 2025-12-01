@@ -22,10 +22,9 @@ namespace GanttChartAPI.Services
                 Role = u.Role,
             }).ToList();
         }
-        public async Task<List<ClassRoleViewModel>> GetUserClassRoles(Guid userId)
+        public async Task<List<ClassRoleViewModel>> GetUserClassRolesAsync(Guid userId)
         {
-            var roles = await _repo.GetUserClassRoles(userId);
-            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(roles));
+            var roles = await _repo.GetUserClassRolesAsync(userId);
             return roles.Select(cr => new ClassRoleViewModel
             {
                 ClassId = cr.ClassId,
