@@ -22,46 +22,15 @@ namespace GanttChartAPI.Repositories
         {
             return await dbContext.TopicClasses.ToListAsync();
         }
-
-        public async Task<List<UserClassViewModel>> GetUserClasses(Guid userId)
-        {
-            var studentRoles = await dbContext.StudentRelations
-                .Include(r => r.TopicClass)
-                .Where(r => r.UserId == userId)
-                .ToListAsync();
-
-            var teacherRoles = await dbContext.TeacherRelations
-                .Include(r => r.TopicClass)
-                .Where(r => r.UserId == userId)
-                .ToListAsync();
-
-            var roles = studentRoles.Cast<ClassRole>()
-                .Concat(teacherRoles.Cast<ClassRole>())
-                .ToList();
-            var userClasses = studentRoles.Select(r => new UserClassViewModel
-            {
-                ClassId = r.ClassId,
-                ClassName = r.TopicClass.Title,
-                Role = 0
-            })
-            .Concat(teacherRoles.Select(r => new UserClassViewModel
-            {
-                ClassId = r.ClassId,
-                ClassName = r.TopicClass.Title,
-                Role = 1
-            }))
-            .ToList();
-            return userClasses;
-        }
+        
         public async Task<TopicClass?> GetByIdAsync(Guid id)
         {
             return await dbContext.TopicClasses.FirstOrDefaultAsync(tc => tc.Id == id);
         }
-        public async Task<TopicClass> CreateAsync(TopicClass topic)
+        public async Task CreateAsync(TopicClass topic)
         {
             dbContext.TopicClasses.Add(topic);
             await dbContext.SaveChangesAsync();
-            return topic;
         }
         public async Task AddStudentAsync(StudentRelation relation)
         {
@@ -72,6 +41,20 @@ namespace GanttChartAPI.Repositories
         {
             await dbContext.TeacherRelations.AddAsync(relation);
             await dbContext.SaveChangesAsync();
+        }
+        public async Task<List<TeacherRelation>> GetTeachersRelationsAsync(Guid userId)
+        {
+            return await dbContext.TeacherRelations
+                .Include(tr => tr.TopicClass)
+                .Where(tr => tr.UserId == userId)
+                .ToListAsync();
+        }
+        public async Task<List<StudentRelation>> GetStudentsRelationsAsync(Guid userId)
+        {
+            return await dbContext.StudentRelations
+                .Include(sr => sr.TopicClass)
+                .Where(sr => sr.UserId == userId)
+                .ToListAsync();
         }
         public async Task UpdateAsync(Guid id, ClassDto dto)
         {

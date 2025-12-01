@@ -1,6 +1,7 @@
 ﻿using GanttChartAPI.Models;
 using GanttChartAPI.Repositories;
 using GanttChartAPI.ViewModels;
+using System.Data;
 
 namespace GanttChartAPI.Services
 {
@@ -38,6 +39,11 @@ namespace GanttChartAPI.Services
         public async Task<UserViewModel> GetByIdAsync(Guid userId)
         {
             var user = await _repo.GetByIdAsync(userId);
+            if(user == null)
+            {
+                _logger.LogWarning("User with ID {UserId} not found.", userId);
+                throw new KeyNotFoundException($"User not found.");
+            }
             return new UserViewModel
             {
                 Id = user.Id,

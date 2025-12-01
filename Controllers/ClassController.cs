@@ -22,6 +22,12 @@ namespace GanttChartAPI.Controllers
         {
             _service = service;
         }
+        private Guid GetUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            return Guid.Parse(userIdClaim.Value);
+        }
+
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ClassViewModel>> Create(ClassDto dto)
@@ -62,9 +68,8 @@ namespace GanttChartAPI.Controllers
         [Authorize]
         public async Task<ActionResult<UserClassViewModel>> GetUserClasses()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            var userId = Guid.Parse(userIdClaim.Value);
-            var classes = await _service.GetUserClasses(userId);
+            var userId = GetUserId();
+            var classes = await _service.GetUserClassesAsync(userId);
             return Ok(classes);
         }
 

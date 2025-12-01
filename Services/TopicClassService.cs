@@ -1,4 +1,5 @@
 ﻿using GanttChartAPI.DTOs;
+using GanttChartAPI.Instruments;
 using GanttChartAPI.Models;
 using GanttChartAPI.Repositories;
 using GanttChartAPI.ViewModels;
@@ -28,7 +29,7 @@ namespace GanttChartAPI.Services
         public async Task<ClassViewModel> GetByIdAsync(Guid id)
         {
             var topic = await repository.GetByIdAsync(id)
-                ?? throw new Exception("Класс не найден");
+                ?? throw new NotFoundException("Класс не найден");
 
             return new ClassViewModel
             {
@@ -57,9 +58,9 @@ namespace GanttChartAPI.Services
 
         public async Task<ClassViewModel> UpdateAsync(Guid id, ClassDto dto)
         {
+            var topic = await repository.GetByIdAsync(id)
+                ?? throw new NotFoundException("Класс не найден");
             await repository.UpdateAsync(id, dto);
-
-            var topic = await repository.GetByIdAsync(id);
             return new ClassViewModel
             {
                 Id = topic.Id,
@@ -71,14 +72,29 @@ namespace GanttChartAPI.Services
         public async Task DeleteAsync(Guid id)
         {
             var topic = await repository.GetByIdAsync(id)
-                ?? throw new Exception("Класс не найден");
+                ?? throw new NotFoundException("Класс не найден");
             await repository.DeleteAsync(topic);
         }
 
-        public async Task<List<UserClassViewModel>> GetUserClasses(Guid userId)
+        public async Task<List<UserClassViewModel>> GetUserClassesAsync(Guid userId)
         {
+            var studentRoles = await repository.GetStudentsRelationsAsync(userId);
+            var teacherRoles = await repository.GetTeachersRelationsAsync(userId);
 
-            var userClasses = await repository.GetUserClasses(userId);
+            var userClasses = studentRoles.Select(r => new UserClassViewModel
+            {
+                ClassId = r.TopicClass.Id,
+                ClassName = r.TopicClass.Title,
+                Description = r.TopicClass.Description,
+                Role = 0
+            })
+            .Concat(teacherRoles.Select(r => new UserClassViewModel
+            {
+                ClassId = r.TopicClass.Id,
+                ClassName = r.TopicClass.Title,
+                Description = r.TopicClass.Description,
+                Role = 1
+            })).ToList();
             return userClasses;
         }
     }

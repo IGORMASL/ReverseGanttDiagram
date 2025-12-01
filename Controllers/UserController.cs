@@ -1,4 +1,5 @@
-﻿using GanttChartAPI.Services;
+﻿using GanttChartAPI.Instruments;
+using GanttChartAPI.Services;
 using GanttChartAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,9 +15,20 @@ namespace GanttChartAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _service;
-        public UserController(IUserService service)
+        private readonly ILogger<UserController> _logger;
+        public UserController(IUserService service, ILogger<UserController> logger)
         {
             _service = service;
+            _logger = logger;
+        }
+        private Guid GetUserIdFromClaims()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                throw new UnauthorizedException("Unauthorized(token not found)");
+            }
+            return Guid.Parse(userIdClaim.Value);
         }
 
         [HttpGet]
@@ -29,8 +41,7 @@ namespace GanttChartAPI.Controllers
         [HttpGet("roles")]
         [Authorize]
         public async Task<ActionResult<List<ClassRoleViewModel>>> GetRoles(){
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            var userId = Guid.Parse(userIdClaim.Value);
+            var userId = GetUserIdFromClaims();
             var roles = await _service.GetUserClassRolesAsync(userId);
             return Ok(roles);
         }
@@ -38,8 +49,7 @@ namespace GanttChartAPI.Controllers
         [Authorize]
         public async Task<ActionResult<UserViewModel>> GetProfile()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            var userId = Guid.Parse(userIdClaim.Value);
+            var userId = GetUserIdFromClaims();
             var profile = await _service.GetByIdAsync(userId);
             return Ok(profile);
         }
