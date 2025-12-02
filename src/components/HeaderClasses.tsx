@@ -1,65 +1,99 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import type { FC } from "react";
+import { clearAuth } from "../api/auth";
+import logo from "../components/free-icon-gantt-chart-5555321.png";
+import { ChevronDown } from "lucide-react";
 
 interface HeaderProps {
   fullName: string;
-  role: "User" | "Admin";
+  systemRole: "User" | "Admin";
+  onCreateClass?: () => void;
 }
 
-export default function HeaderClasses({ fullName, role }: HeaderProps) {
+const HeaderClasses: FC<HeaderProps> = ({ fullName, systemRole, onCreateClass }) => {
+  const navigate = useNavigate();
 
-  const getActionButtonLabel = () => {
-    return role === "Admin" ? "Создать класс" : "Добавить класс";
+  const handleAction = () => {
+    if (systemRole === "Admin") {
+      onCreateClass?.(); // открыть модалку создания класса
+    } else {
+      alert("Добавить класс (ввести код/ссылку) — реализовать позже.");
+    }
+  };
+
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/auth");
+  };
+
+  const handleSearch = () => {
+    // TODO: реализовать поиск по классам
+    alert("Поиск будет реализован позже");
   };
 
   return (
-    <header className="w-full h-20 border-b bg-white px-8 flex items-center justify-between">
-
-      {/* Левая часть — лого + название */}
+    <header className="w-full h-20 border-b border-b-neutral-200 bg-gray-100 px-8 flex items-center justify-between">
+      {/* Логотип */}
       <Link to="/classes" className="flex items-center gap-3 hover:opacity-80">
-        <div className="w-10 h-10 bg-black rounded-xl"></div>
-        <h1 className="text-xl font-semibold">
-          Реверсивная диаграмма Ганта
-        </h1>
+        <img src={logo} alt="logo" className="w-10 h-10 rounded-xl" />
+        <h1 className="text-xl font-semibold">Реверсивная диаграмма Ганта</h1>
       </Link>
 
-      {/* Поиск — строго по центру */}
-      <div className="flex-1 flex justify-center px-8">
-        <input
-          type="text"
-          placeholder="Поиск по классам..."
-          className="w-full max-w-md border border-gray-300 rounded-lg px-4 py-2 text-sm 
-                     shadow-sm focus:ring-2 focus:ring-black outline-none"
-        />
+      {/* Поиск */}
+      <div className="flex-1 flex justify-start px-8 mx-20">
+        <div className="flex items-center gap-3 w-full max-w-md">
+          <input
+            type="text"
+            placeholder="Поиск по классам..."
+            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm shadow-sm
+                       focus:ring-2 focus:ring-black outline-none transition"
+          />
+          <button
+            onClick={handleSearch}
+            className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-black hover:text-white
+                       border border-gray-300 shadow-sm transition text-sm"
+          >
+            Найти
+          </button>
+        </div>
       </div>
 
-      {/* Правая часть — кнопка + профиль */}
+      {/* Кнопка создания/добавления класса */}
       <div className="flex items-center gap-6">
-
-        {/* Кнопка создания/добавления класса */}
         <button
-          className="px-4 py-2 border border-black rounded-lg hover:bg-black
-                     hover:text-white transition text-sm"
+          onClick={handleAction}
+          className="px-4 py-2 bg-indigo-200 rounded-lg hover:bg-black hover:text-white transition text-sm"
         >
-          {getActionButtonLabel()}
+          {systemRole === "Admin" ? "Создать класс" : "Добавить класс"}
         </button>
 
-        {/* Профиль */}
-        <div className="relative group cursor-pointer">
-          <div className="font-medium">{fullName}</div>
+        {/* Меню профиля */}
+        <div className="relative group">
+          <button className="flex items-center gap-2 font-medium cursor-pointer focus:outline-none">
+            {fullName || "Пользователь"}
+            <ChevronDown size={16} />
+          </button>
 
-          {/* Выпадающее меню */}
-          <div className="absolute right-0 mt-2 w-40 bg-white border rounded-lg shadow-lg 
-                          opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition">
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100">
+          <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-md
+                          opacity-0 group-hover:opacity-100 group-focus-within:opacity-100
+                          pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto
+                          transition duration-200">
+            <button className="w-full text-left px-4 py-2 hover:bg-gray-50 transition">
               Профиль
             </button>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-100">
+            {/* разделительная полоска */}
+            <div className="border-t border-gray-200" />
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 transition"
+            >
               Выйти
             </button>
           </div>
         </div>
-
       </div>
     </header>
   );
-}
+};
+
+export default HeaderClasses;
