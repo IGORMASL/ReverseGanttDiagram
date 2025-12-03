@@ -13,7 +13,7 @@ namespace GanttChartAPI.Models
         public string Description { get; set; }
         
         [InverseProperty("TopicClass")]
-        public List<Project> Projects { get; set; } = new List<Project>();
+        public List<TaskProject> Projects { get; set; } = new List<TaskProject>();
 
         public List<TeacherRelation> Teachers { get; set; } = new List<TeacherRelation>();
 

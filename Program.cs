@@ -64,7 +64,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITopicClassRepository, TopicClassRepository>();
 builder.Services.AddScoped<ITopicClassService, TopicClassService>();
 builder.Services.AddScoped<IInviteRepository, InviteRepository>();
+builder.Services.AddScoped<IClassRelationRepository, ClassRelationRepository>();
 builder.Services.AddScoped<IInviteService, InviteService>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddSingleton<JwtProvider>();
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer(options =>

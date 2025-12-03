@@ -10,14 +10,16 @@ namespace GanttChartAPI.Services
 {
     public class TopicClassService : ITopicClassService
     {
-        private readonly ITopicClassRepository repository;
-        public TopicClassService(ITopicClassRepository repo)
+        private readonly ITopicClassRepository _classes;
+        private readonly IClassRelationRepository _relations;
+        public TopicClassService(ITopicClassRepository classes, IClassRelationRepository relations)
         {
-            repository = repo;
+            _classes = classes;
+            _relations = relations;
         }
         public async Task<List<ClassViewModel>> GetAllAsync()
         {
-            var classes = await repository.GetAllAsync();
+            var classes = await _classes.GetAllAsync();
             return classes.Select(c => new ClassViewModel
             {
                 Id = c.Id,
@@ -28,7 +30,7 @@ namespace GanttChartAPI.Services
         }
         public async Task<ClassViewModel> GetByIdAsync(Guid id)
         {
-            var topic = await repository.GetByIdAsync(id)
+            var topic = await _classes.GetByIdAsync(id)
                 ?? throw new NotFoundException("Класс не найден");
 
             return new ClassViewModel
@@ -47,7 +49,7 @@ namespace GanttChartAPI.Services
                 Title = dto.Title,
                 Description = dto.Description
             };
-            await repository.CreateAsync(topic);
+            await _classes.CreateAsync(topic);
             return new ClassViewModel
             {
                 Id = topic.Id,
@@ -58,9 +60,11 @@ namespace GanttChartAPI.Services
 
         public async Task<ClassViewModel> UpdateAsync(Guid id, ClassDto dto)
         {
-            var topic = await repository.GetByIdAsync(id)
+            var topic = await _classes.GetByIdAsync(id)
                 ?? throw new NotFoundException("Класс не найден");
-            await repository.UpdateAsync(id, dto);
+            topic.Title = dto.Title;
+            topic.Description = dto.Description;
+            await _classes.UpdateAsync(topic);
             return new ClassViewModel
             {
                 Id = topic.Id,
@@ -71,15 +75,15 @@ namespace GanttChartAPI.Services
 
         public async Task DeleteAsync(Guid id)
         {
-            var topic = await repository.GetByIdAsync(id)
+            var topic = await _classes.GetByIdAsync(id)
                 ?? throw new NotFoundException("Класс не найден");
-            await repository.DeleteAsync(topic);
+            await _classes.DeleteAsync(topic);
         }
 
         public async Task<List<UserClassViewModel>> GetUserClassesAsync(Guid userId)
         {
-            var studentRoles = await repository.GetStudentsRelationsAsync(userId);
-            var teacherRoles = await repository.GetTeachersRelationsAsync(userId);
+            var studentRoles = await _relations.GetStudentsRelationsAsync(userId);
+            var teacherRoles = await _relations.GetTeachersRelationsAsync(userId);
 
             var userClasses = studentRoles.Select(r => new UserClassViewModel
             {

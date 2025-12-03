@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GanttChartAPI.Models
 {
-    public class Project
+    public class TaskProject
     {
         [Key]
         public Guid Id { get; set; }

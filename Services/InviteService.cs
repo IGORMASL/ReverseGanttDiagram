@@ -11,13 +11,16 @@ namespace GanttChartAPI.Services
 {
     public class InviteService : IInviteService
     {
-        private readonly IInviteRepository _repo;
+        private readonly IInviteRepository _invites;
         private readonly ITopicClassRepository _classes;
+        private readonly IClassRelationRepository _relations;
 
-        public InviteService(IInviteRepository repo, ITopicClassRepository classes)
+        public InviteService(IInviteRepository repo, 
+            ITopicClassRepository classes, IClassRelationRepository relations)
         {
-            _repo = repo;
+            _invites = repo;
             _classes = classes;
+            _relations = relations;
         }
         public async Task<ClassInvite> CreateAsync(Guid classId, InviteDto dto)
         {
@@ -31,19 +34,21 @@ namespace GanttChartAPI.Services
                 IsMultiUse = dto.IsMultiUse,
                 ExpiresAt = DateTime.UtcNow.AddHours(dto.ExpireHours)
             };
-            await _repo.AddAsync(invite);
+            await _invites.AddAsync(invite);
             return invite;
         }
         public async Task UseAsync(Guid inviteId, Guid userId)
         {
-            var invite = await _repo.GetByIdAsync(inviteId)
+            var invite = await _invites.GetByIdAsync(inviteId)
                 ?? throw new NotFoundException("Приглашение не существует");
             if (!invite.IsMultiUse && invite.IsUsed)
                 throw new InvitationUsedException();
             if (invite.ExpiresAt < DateTime.UtcNow)
                 throw new InvitationExpiredException();
-            if (await _classes.IsUserInClassAsync(userId, invite.ClassId))
-                throw new InvalidOperationException("Пользователь уже состоит в этом классе");
+            if (await _relations.IsTeacherInClassAsync(userId, invite.ClassId))
+                throw new InvalidOperationException("Пользователь уже является преподавателем в данном классе");
+            if (await _relations.IsStudentInClassAsync(userId, invite.ClassId))
+                throw new InvalidOperationException("Пользователь уже является студентом в данном классе");
             if (invite.IsTeacherInvite)
             {
                 var rel = new TeacherRelation
@@ -52,7 +57,7 @@ namespace GanttChartAPI.Services
                     ClassId = invite.ClassId,
                     UserId = userId
                 };
-                await _classes.AddTeacherAsync(rel);
+                await _relations.AddTeacherAsync(rel);
             }
             else
             {
@@ -62,15 +67,15 @@ namespace GanttChartAPI.Services
                     ClassId = invite.ClassId,
                     UserId = userId
                 };
-                await _classes.AddStudentAsync(rel);
+                await _relations.AddStudentAsync(rel);
             }
             if (!invite.IsMultiUse)
                 invite.IsUsed = true;
-            await _repo.UpdateAsync(invite);
+            await _invites.UpdateAsync(invite);
         }
         public async Task<List<InviteViewModel>> GetAllAsync()
         {
-             var invites = await _repo.GetAllAsync();
+             var invites = await _invites.GetAllAsync();
             return invites.Select(i => new InviteViewModel
             {
                 Id = i.Id,
