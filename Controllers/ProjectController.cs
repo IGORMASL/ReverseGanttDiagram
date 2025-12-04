@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 namespace GanttChartAPI.Controllers
 {
-    [Route("api/class/project")]
+    [Route("api/project")]
     [ApiController]
     public class ProjectController : ControllerBase
     {
@@ -46,7 +46,7 @@ namespace GanttChartAPI.Controllers
             await _service.DeleteProjectAsync(userRole, userId, projectId);
             return Ok();
         }
-        [HttpGet("{classId}")]
+        [HttpGet("class/{classId}")]
         [Authorize]
         public async Task<ActionResult> GetClassProjects(Guid classId)
         {

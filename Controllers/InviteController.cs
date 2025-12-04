@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace GanttChartAPI.Controllers
 {
-    [Route("api")]
+    [Route("api/invite")]
     [ApiController]
     public class InviteController : ControllerBase
     {
@@ -23,7 +23,7 @@ namespace GanttChartAPI.Controllers
         }
 
 
-        [HttpPost("class/invite/create")]
+        [HttpPost("create")]
         [Authorize]
         public async Task<ActionResult> Create(Guid classId, InviteDto dto)
         {
@@ -36,7 +36,7 @@ namespace GanttChartAPI.Controllers
                 link = $"https://GanttChart/class/join?inv={inv.Id}"
             });
         }
-        [HttpPost("class/invite/{inviteId}")]
+        [HttpPost("{inviteId}")]
         [Authorize]
         public async Task<ActionResult> Use(Guid inviteId)
         {
@@ -44,14 +44,14 @@ namespace GanttChartAPI.Controllers
             await _service.UseAsync(inviteId, userId);
             return Ok("Вы успешно добавлены в класс");
         }
-        [HttpGet("invites")]
+        [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<List<InviteViewModel>>> GetAll()
         {
             var invites = await _service.GetAllAsync();
             return Ok(invites);
         }
-        [HttpGet("class/invites")]
+        [HttpGet("class")]
         [Authorize]
         public async Task<ActionResult<List<InviteViewModel>>> GetClassInvites(Guid classId)
         {
