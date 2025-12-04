@@ -6,8 +6,10 @@ using GanttChartAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters.Xml;
 using Microsoft.AspNetCore.Mvc.Routing;
 using System.ComponentModel.Design;
+using System.Data;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Claims;
 
@@ -18,19 +20,12 @@ namespace GanttChartAPI.Controllers
     public class ClassController : ControllerBase
     {
         private readonly ITopicClassService _service;
+        private readonly IUserContextService _userContext;
 
-        public ClassController(ITopicClassService service)
+        public ClassController(ITopicClassService service, IUserContextService userContext)
         {
             _service = service;
-        }
-        private Guid GetUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-            {
-                throw new UnauthorizedException("Unauthorized(token not found)");
-            }
-            return Guid.Parse(userIdClaim.Value);
+            _userContext = userContext;
         }
 
         [HttpPost]
@@ -42,10 +37,12 @@ namespace GanttChartAPI.Controllers
         }
 
         [HttpPut]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ClassViewModel>> Update(Guid id, ClassDto dto)
+        [Authorize]
+        public async Task<ActionResult<ClassViewModel>> Update(Guid classId, ClassDto dto)
         {
-            var topic = await _service.UpdateAsync(id, dto);
+            var userRole = _userContext.GetUserRole();
+            var userId = _userContext.GetUserId();
+            var topic = await _service.UpdateAsync(userRole, userId, classId, dto);
             return Ok(topic);
         }
         [HttpDelete]
@@ -63,17 +60,19 @@ namespace GanttChartAPI.Controllers
             return Ok(topicList);
         }
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<ActionResult<ClassViewModel>> GetById(Guid id)
         {
-            var topic = await _service.GetByIdAsync(id);
+            var userRole = _userContext.GetUserRole();
+            var userId = _userContext.GetUserId();
+            var topic = await _service.GetByIdAsync(userRole, userId, id);
             return Ok(topic);
         }
         [HttpGet("user")]
         [Authorize]
         public async Task<ActionResult<UserClassViewModel>> GetUserClasses()
         {
-            var userId = GetUserId();
+            var userId = _userContext.GetUserId();
             var classes = await _service.GetUserClassesAsync(userId);
             return Ok(classes);
         }

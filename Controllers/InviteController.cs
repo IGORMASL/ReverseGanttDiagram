@@ -9,50 +9,55 @@ using System.Security.Claims;
 
 namespace GanttChartAPI.Controllers
 {
-    [Route("api/class/invite")]
+    [Route("api")]
     [ApiController]
     public class InviteController : ControllerBase
     {
         private readonly IInviteService _service;
-        public InviteController(IInviteService service)
+        private readonly IUserContextService _userContext;
+
+        public InviteController(IInviteService service, IUserContextService userContext)
         {
             _service = service;
+            _userContext = userContext;
         }
 
-        private Guid GetUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-            {
-                throw new UnauthorizedException("Unauthorized(token not found)");
-            }
-            return Guid.Parse(userIdClaim.Value);
-        }
 
-        [HttpPost("create/{classId}")]
-        [Authorize(Roles = "Admin")]
+        [HttpPost("class/invite/create")]
+        [Authorize]
         public async Task<ActionResult> Create(Guid classId, InviteDto dto)
         {
-            var inv = await _service.CreateAsync(classId, dto);
+            var userId = _userContext.GetUserId();
+            var userRole = _userContext.GetUserRole();
+            var inv = await _service.CreateAsync(userRole, userId, classId, dto);
             return Ok(new
             {
                 inviteId = inv.Id,
-                link = $"https://GanttChart/join?inv={inv.Id}"
+                link = $"https://GanttChart/class/join?inv={inv.Id}"
             });
         }
-        [HttpPost("{inviteId}")]
+        [HttpPost("class/invite/{inviteId}")]
         [Authorize]
         public async Task<ActionResult> Use(Guid inviteId)
         {
-            var userId = GetUserId();
+            var userId = _userContext.GetUserId();
             await _service.UseAsync(inviteId, userId);
             return Ok("Вы успешно добавлены в класс");
         }
-        [HttpGet]
+        [HttpGet("invites")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<List<InviteViewModel>>> GetAll()
         {
-            var invites =  await _service.GetAllAsync();
+            var invites = await _service.GetAllAsync();
+            return Ok(invites);
+        }
+        [HttpGet("class/invites")]
+        [Authorize]
+        public async Task<ActionResult<List<InviteViewModel>>> GetClassInvites(Guid classId)
+        {
+            var userId = _userContext.GetUserId();
+            var userRole = _userContext.GetUserRole();
+            var invites = await _service.GetClassInvitesAsync(userRole, userId, classId);
             return Ok(invites);
         }
     }

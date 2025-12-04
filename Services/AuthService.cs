@@ -48,12 +48,12 @@ namespace GanttChartAPI.Services
             if (user == null)
             {
                 _logger.LogWarning("Login failed for email: {Email} - user not found.", dto.Email);
-                throw new UnauthorizedException("Invalid email or password.");
+                throw new ConflictException("Invalid email or password.");
             }
             if(!PasswordHasher.Verify(user.PasswordHash, dto.Password))
             {
                 _logger.LogWarning("Login failed for email: {Email} - invalid password.", dto.Email);
-                throw new UnauthorizedException("Invalid email or password.");
+                throw new ConflictException("Invalid email or password.");
             }
             _logger.LogInformation("User logged in successfully with email: {Email}", dto.Email);
             return _token.Generate(user);

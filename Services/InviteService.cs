@@ -15,6 +15,7 @@ namespace GanttChartAPI.Services
         private readonly ITopicClassRepository _classes;
         private readonly IClassRelationRepository _relations;
 
+        
         public InviteService(IInviteRepository repo, 
             ITopicClassRepository classes, IClassRelationRepository relations)
         {
@@ -22,10 +23,15 @@ namespace GanttChartAPI.Services
             _classes = classes;
             _relations = relations;
         }
-        public async Task<ClassInvite> CreateAsync(Guid classId, InviteDto dto)
+        public async Task<ClassInvite> CreateAsync(string creatorRole, Guid creatorId, Guid classId, InviteDto dto)
         {
             if(await _classes.GetByIdAsync(classId) == null)
                 throw new NotFoundException("Такой класс не существует");
+            var creatorClassRole = await _relations.GetUserClassRoleAsync(creatorId, classId);
+            if (creatorRole != "Admin" && creatorClassRole is not TeacherRelation)
+            {
+                throw new ForbiddenException("У вас нет прав для создания приглашений в этот класс");
+            }
             var invite = new ClassInvite
             {
                 Id = Guid.NewGuid(),
@@ -45,10 +51,8 @@ namespace GanttChartAPI.Services
                 throw new InvitationUsedException();
             if (invite.ExpiresAt < DateTime.UtcNow)
                 throw new InvitationExpiredException();
-            if (await _relations.IsTeacherInClassAsync(userId, invite.ClassId))
-                throw new InvalidOperationException("Пользователь уже является преподавателем в данном классе");
-            if (await _relations.IsStudentInClassAsync(userId, invite.ClassId))
-                throw new InvalidOperationException("Пользователь уже является студентом в данном классе");
+            if (await _relations.IsUserInClassAsync(userId, invite.ClassId))
+                throw new InvalidOperationException("Вы уже состоите в классе");
             if (invite.IsTeacherInvite)
             {
                 var rel = new TeacherRelation
@@ -75,7 +79,27 @@ namespace GanttChartAPI.Services
         }
         public async Task<List<InviteViewModel>> GetAllAsync()
         {
-             var invites = await _invites.GetAllAsync();
+            var invites = await _invites.GetAllAsync();
+            return invites.Select(i => new InviteViewModel
+            {
+                Id = i.Id,
+                ClassId = i.ClassId,
+                IsTeacherInvite = i.IsTeacherInvite,
+                ExpiresAt = i.ExpiresAt,
+                IsMultiUse = i.IsMultiUse,
+                IsUsed = i.IsUsed
+            }).ToList();
+        }
+        public async Task<List<InviteViewModel>> GetClassInvitesAsync(string userRole, Guid userId, Guid classId)
+        {
+            if (await _classes.GetByIdAsync(classId) == null)
+                throw new NotFoundException("Класс не существует");
+            var userClassRole = await _relations.GetUserClassRoleAsync(userId, classId);
+            if (userRole != "Admin" && userClassRole is not TeacherRelation)
+            {
+                throw new ForbiddenException("У вас нет прав для просмотра приглашений в этот класс");
+            }
+            var invites = await _invites.GetClassInvitesAsync(classId);
             return invites.Select(i => new InviteViewModel
             {
                 Id = i.Id,

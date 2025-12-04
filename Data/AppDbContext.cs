@@ -14,7 +14,7 @@ namespace GanttChartAPI.Data
         public DbSet<ClassRole> ClassRoles { get; set; }
         public DbSet<StudentRelation> StudentRelations { get; set; }
         public DbSet<TeacherRelation> TeacherRelations { get; set; }
-        public DbSet<TaskProject> Projects { get; set; }
+        public DbSet<WorkProject> Projects { get; set; }
         public DbSet<ProjectTask> ProjectTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
         public DbSet<TaskDependency> TaskDependencies { get; set; }
@@ -109,7 +109,7 @@ namespace GanttChartAPI.Data
                 .HasForeignKey(td => td.PredecessorTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
             //Project
-            modelBuilder.Entity<TaskProject>()
+            modelBuilder.Entity<WorkProject>()
                 .HasOne(p => p.TopicClass)
                 .WithMany(c => c.Projects)
                 .HasForeignKey(p => p.TopicClassId)
@@ -120,8 +120,12 @@ namespace GanttChartAPI.Data
                 .WithMany(p => p.Teams)
                 .HasForeignKey(t => t.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-
+            //Invite
+            modelBuilder.Entity<ClassInvite>()
+                .HasOne(i => i.Class)
+                .WithMany(c => c.Invites)
+                .HasForeignKey(i => i.ClassId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     } 
 }

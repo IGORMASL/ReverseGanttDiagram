@@ -12,5 +12,6 @@ namespace GanttChartAPI.ViewModels
         public DateTime ExpiresAt { get; set; }
         public bool IsMultiUse { get; set; }
         public bool IsUsed { get; set; }
+        public string Link => $"https://GanttChart/class/join?inv={Id}";
     }
 }

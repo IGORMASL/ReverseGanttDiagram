@@ -12,15 +12,13 @@ namespace GanttChartAPI.Repositories
         {
             dbContext = context;
         }
-        public async Task<bool> IsStudentInClassAsync(Guid userId, Guid classId)
+        public async Task<bool> IsUserInClassAsync(Guid userId, Guid classId)
         {
-            return await dbContext.StudentRelations
-                .AnyAsync(sr => sr.UserId == userId && sr.ClassId == classId);
+            return await dbContext.ClassRoles.AnyAsync(cr => cr.UserId == userId && cr.ClassId == classId);
         }
-        public async Task<bool> IsTeacherInClassAsync(Guid userId, Guid classId)
+        public async Task<ClassRole?> GetUserClassRoleAsync(Guid userId, Guid classId)
         {
-            return await dbContext.TeacherRelations
-                .AnyAsync(tr => tr.UserId == userId && tr.ClassId == classId);
+            return await dbContext.ClassRoles.FirstOrDefaultAsync(cr => cr.UserId == userId && cr.ClassId == classId);
         }
         public async Task AddStudentAsync(StudentRelation relation)
         {

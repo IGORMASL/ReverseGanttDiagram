@@ -26,7 +26,7 @@ namespace GanttChartAPI.Models
 
         public Guid ProjectId { get; set; }
         [ForeignKey("ProjectId")]
-        public TaskProject Project { get; set; }
+        public WorkProject Project { get; set; }
         public List<TaskDependency> PredecessorTasks { get; set; } = new List<TaskDependency>();
         public List<TaskDependency> DependentTasks { get; set; } = new List<TaskDependency>();
         public List<ProjectTask> Subtasks { get; set; } = new List<ProjectTask>();

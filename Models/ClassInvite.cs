@@ -13,7 +13,7 @@ namespace GanttChartAPI.Models
         public TopicClass Class { get; set; }
         [Required]
         public bool IsTeacherInvite { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime ExpiresAt { get; set; }
         public bool IsMultiUse { get; set; } = false;
         public bool IsUsed { get; set; } = false;

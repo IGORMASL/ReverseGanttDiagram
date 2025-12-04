@@ -12,13 +12,19 @@ namespace GanttChartAPI.Repositories
             _context = context;
         }
 
-        public async Task<ClassInvite> GetByIdAsync(Guid id)
+        public async Task<ClassInvite?> GetByIdAsync(Guid id)
         {
             return await _context.Invites.FirstOrDefaultAsync(i => i.Id == id);
         }
         public async Task<List<ClassInvite>> GetAllAsync()
         {
             return await _context.Invites.ToListAsync();
+        }
+        public async Task<List<ClassInvite>> GetClassInvitesAsync(Guid classId)
+        {
+            return await _context.Invites
+                .Where(i => i.ClassId == classId)
+                .ToListAsync();
         }
         public async Task AddAsync(ClassInvite invite)
         {

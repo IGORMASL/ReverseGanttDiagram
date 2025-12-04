@@ -22,7 +22,7 @@ namespace GanttChartAPI.Services
                 Id = u.Id,
                 FullName = u.FullName,
                 Email = u.Email,
-                Role = u.Role,
+                Role = (int)u.Role,
             }).ToList();
         }
         public async Task<List<ClassRoleViewModel>> GetUserClassRolesAsync(Guid userId)
@@ -49,7 +49,7 @@ namespace GanttChartAPI.Services
                 Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
-                Role = user.Role
+                Role = (int)user.Role
             };
         }
     }
