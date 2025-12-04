@@ -55,14 +55,16 @@ namespace GanttChartAPI.Services
             {
                 Id = Guid.NewGuid(),
                 Title = dto.Title,
-                Description = dto.Description
+                Description = dto.Description,
+                Color = dto.Color
             };
             await _classes.CreateAsync(topic);
             return new ClassViewModel
             {
                 Id = topic.Id,
                 Title = topic.Title,
-                Description = topic.Description
+                Description = topic.Description,
+                Color = topic.Color
             };
         }
 
