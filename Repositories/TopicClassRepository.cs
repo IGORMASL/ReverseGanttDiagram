@@ -41,5 +41,23 @@ namespace GanttChartAPI.Repositories
             dbContext.TopicClasses.Remove(topic);
             await dbContext.SaveChangesAsync();
         }
+        public async Task<List<User>> GetClassTeachersAsync(Guid classId)
+        {
+            var topic = await dbContext.TopicClasses
+                .Include(c => c.Teachers)
+                .ThenInclude(tr => tr.User)
+                .FirstOrDefaultAsync(c => c.Id == classId);
+            var teachers = topic.Teachers.Select(tr => tr.User).ToList();
+            return teachers;
+        }
+        public async Task<List<User>> GetClassStudentsAsync(Guid classId)
+        {
+            var topic = await dbContext.TopicClasses
+                .Include(c => c.Students)
+                .ThenInclude(sr => sr.User)
+                .FirstOrDefaultAsync(c => c.Id == classId);
+            var teachers = topic.Students.Select(tr => tr.User).ToList();
+            return teachers;
+        }
     }
 }

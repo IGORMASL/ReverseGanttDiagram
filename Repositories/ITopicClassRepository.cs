@@ -11,5 +11,7 @@ namespace GanttChartAPI.Repositories
         Task DeleteAsync(TopicClass topic);
         Task<TopicClass?> GetByIdAsync(Guid id);
         Task<List<TopicClass>> GetAllAsync();
+        Task<List<User>> GetClassTeachersAsync(Guid classId);
+        Task<List<User>> GetClassStudentsAsync(Guid classId);
     }
 }

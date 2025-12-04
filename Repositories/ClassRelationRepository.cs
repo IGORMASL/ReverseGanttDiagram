@@ -30,14 +30,32 @@ namespace GanttChartAPI.Repositories
             await dbContext.TeacherRelations.AddAsync(relation);
             await dbContext.SaveChangesAsync();
         }
-        public async Task<List<TeacherRelation>> GetTeachersRelationsAsync(Guid userId)
+        public async Task RemoveStudentAsync(Guid userId, Guid classId)
+        {
+            var relation = await dbContext.StudentRelations.FirstOrDefaultAsync(sr => sr.UserId == userId && sr.ClassId == classId);
+            if (relation != null)
+            {
+                dbContext.StudentRelations.Remove(relation);
+                await dbContext.SaveChangesAsync();
+            }
+        }
+        public async Task RemoveTeacherAsync(Guid userId, Guid classId)
+        {
+            var relation = await dbContext.TeacherRelations.FirstOrDefaultAsync(tr => tr.UserId == userId && tr.ClassId == classId);
+            if (relation != null)
+            {
+                dbContext.TeacherRelations.Remove(relation);
+                await dbContext.SaveChangesAsync();
+            }
+        }
+        public async Task<List<TeacherRelation>> GetUserTeachersRelationsAsync(Guid userId)
         {
             return await dbContext.TeacherRelations
                 .Include(tr => tr.TopicClass)
                 .Where(tr => tr.UserId == userId)
                 .ToListAsync();
         }
-        public async Task<List<StudentRelation>> GetStudentsRelationsAsync(Guid userId)
+        public async Task<List<StudentRelation>> GetUserStudentsRelationsAsync(Guid userId)
         {
             return await dbContext.StudentRelations
                 .Include(sr => sr.TopicClass)

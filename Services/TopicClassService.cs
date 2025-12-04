@@ -98,8 +98,8 @@ namespace GanttChartAPI.Services
 
         public async Task<List<UserClassViewModel>> GetUserClassesAsync(Guid userId)
         {
-            var studentRoles = await _relations.GetStudentsRelationsAsync(userId);
-            var teacherRoles = await _relations.GetTeachersRelationsAsync(userId);
+            var studentRoles = await _relations.GetUserStudentsRelationsAsync(userId);
+            var teacherRoles = await _relations.GetUserTeachersRelationsAsync(userId);
 
             var userClasses = studentRoles.Select(r => new UserClassViewModel
             {
@@ -118,6 +118,30 @@ namespace GanttChartAPI.Services
                 Role = 1
             })).ToList();
             return userClasses;
+        }
+        public async Task<List<ClassMemberViewModel>> GetClassMembersAsync(string userRole, Guid userId, Guid classId)
+        {
+            var topic = await _classes.GetByIdAsync(classId)
+                ?? throw new NotFoundException("Класс не найден");
+            var userClassRole = await _relations.GetUserClassRoleAsync(userId, classId);
+            if (userRole != "Admin" && userClassRole == null)
+            {
+                throw new ForbiddenException("Вы не можете просмотреть участников класса");
+            }
+            var teachers = await _classes.GetClassTeachersAsync(classId);
+            var students = await _classes.GetClassStudentsAsync(classId);
+            var members = teachers.Select(t => new ClassMemberViewModel
+            {
+                FullName = t.FullName,
+                Email = t.Email,
+                ClassRole = 1
+            }).Concat(students.Select(s => new ClassMemberViewModel
+            {
+                FullName = s.FullName,
+                Email = s.Email,
+                ClassRole = 0
+            })).ToList();
+            return members;
         }
     }
 }
