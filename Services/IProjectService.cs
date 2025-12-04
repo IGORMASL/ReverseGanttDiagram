@@ -11,7 +11,6 @@ namespace GanttChartAPI.Services
         Task DeleteProjectAsync(string userRole, Guid userId, Guid projId);
         Task<List<ProjectViewModel>> GetClassProjectsAsync(string userRole, Guid userId, Guid classId);
         Task<ProjectViewModel?> GetProjectByIdAsync(string userRole, Guid userId, Guid id);
-        //Task<ProjectViewModel?> GetTeamProjectAsync(Guid userId);
-        //Task<ProjectViewModel?> GetUserProjects(Guid userId);
+        Task<List<UserClassProjectViewModel>> GetUserClassProjectsAsync(Guid userId, Guid classId);
     }
 }

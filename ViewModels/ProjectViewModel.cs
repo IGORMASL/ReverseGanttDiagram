@@ -9,7 +9,7 @@ namespace GanttChartAPI.ViewModels
         public string Description { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public ProjectTaskStatus Status { get; set; }
+        public ProjectStatus Status { get; set; }
         public Guid ClassId { get; set; }
     }
 }

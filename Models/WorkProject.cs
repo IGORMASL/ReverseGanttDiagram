@@ -12,18 +12,13 @@ namespace GanttChartAPI.Models
         public string Title { get; set; }
         [Required]
         public string Description { get; set; }
-        public ProjectTaskStatus Status { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public ProjectStatus Status { get; set; }
         public Guid TopicClassId { get; set; }
         [ForeignKey("TopicClassId")]
         public TopicClass TopicClass { get; set; }
-
-        [InverseProperty("Project")]
         public List<Team> Teams { get; set; } = new List<Team>();
-        
-        [InverseProperty("Project")]
-        public List<ProjectTask> ProjectTasks { get; set; } = new List<ProjectTask>();
-
+        public List<ProjectSolution> Solutions { get; set; } = new List<ProjectSolution>();
     }
 }

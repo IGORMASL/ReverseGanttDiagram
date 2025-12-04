@@ -18,6 +18,7 @@ namespace GanttChartAPI.Data
         public DbSet<ProjectTask> ProjectTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
         public DbSet<TaskDependency> TaskDependencies { get; set; }
+        public DbSet<ProjectSolution> ProjectSolutions { get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<TeamMember> TeamMembers { get; set; }
         public DbSet<ClassInvite> Invites { get; set; }
@@ -74,11 +75,27 @@ namespace GanttChartAPI.Data
                 .WithMany(t => t.AssignedUsers)
                 .HasForeignKey(at => at.TaskId)
                 .OnDelete(DeleteBehavior.Cascade);
+            //ProjectSolution
+            modelBuilder.Entity<ProjectSolution>()
+                .HasOne(ps => ps.Project)
+                .WithMany(p => p.Solutions)
+                .HasForeignKey(ps => ps.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ProjectSolution>()
+                .HasOne(ps => ps.Team)
+                .WithOne(t => t.Solution)
+                .HasForeignKey<ProjectSolution>(ps => ps.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Team>()
+                .HasOne(t => t.Project)
+                .WithMany(p => p.Teams)
+                .HasForeignKey(t => t.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
             //ProjectTask
             modelBuilder.Entity<ProjectTask>()
-                .HasOne(pt => pt.Project)
-                .WithMany(p => p.ProjectTasks)
-                .HasForeignKey(pt => pt.ProjectId)
+                .HasOne(pt => pt.Solution)
+                .WithMany(ps => ps.ProjectTasks)
+                .HasForeignKey(pt => pt.SolutionId)
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<ProjectTask>()
                 .HasOne(pt => pt.ParentTask)
@@ -113,12 +130,6 @@ namespace GanttChartAPI.Data
                 .HasOne(p => p.TopicClass)
                 .WithMany(c => c.Projects)
                 .HasForeignKey(p => p.TopicClassId)
-                .OnDelete(DeleteBehavior.Cascade);
-            //Team
-            modelBuilder.Entity<Team>()
-                .HasOne(t => t.Project)
-                .WithMany(p => p.Teams)
-                .HasForeignKey(t => t.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
             //Invite
             modelBuilder.Entity<ClassInvite>()

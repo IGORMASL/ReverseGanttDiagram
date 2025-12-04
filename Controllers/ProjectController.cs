@@ -1,6 +1,7 @@
 ﻿using GanttChartAPI.DTOs;
 using GanttChartAPI.Instruments;
 using GanttChartAPI.Services;
+using GanttChartAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -63,6 +64,14 @@ namespace GanttChartAPI.Controllers
             var userRole = _userContext.GetUserRole();
             var project = await _service.GetProjectByIdAsync(userRole, userId, projectId);
             return Ok(project);
+        }
+        [HttpGet("class/user")]
+        [Authorize]
+        public async Task<ActionResult<List<UserClassProjectViewModel>>> GetUserClassProjects(Guid classId)
+        {
+            var userId = _userContext.GetUserId();
+            var projects = await _service.GetUserClassProjectsAsync(userId, classId);
+            return Ok(projects);
         }
 
     }

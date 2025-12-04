@@ -8,7 +8,7 @@ namespace GanttChartAPI.Repositories
         Task UpdateTeamAsync (Team team);
         Task DeleteTeamAsync (Team team);
         Task<Team?> GetTeamByIdAsync (Guid teamId);
-        Task<List<Team>> GetProjectTeamsIdAsync (Guid projectId);
-        Task<Team> GetProjectUserTeamAsync (Guid projectId, Guid userId);
+        Task<List<Team>> GetProjectTeamsAsync (Guid projectId);
+        Task<Team> GetUserProjectTeamAsync (Guid projectId, Guid userId);
     }
 }

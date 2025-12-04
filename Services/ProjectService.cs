@@ -138,5 +138,23 @@ namespace GanttChartAPI.Services
                 ClassId = proj.TopicClassId
             };
         }
+        public async Task<List<UserClassProjectViewModel>> GetUserClassProjectsAsync(Guid userId, Guid classId)
+        {
+            var classRole = await _classRelations.GetUserClassRoleAsync(userId, classId);
+            if (classRole == null)
+            {
+                throw new ForbiddenException("Недостаточно прав для просмотра проектов в этом классе");
+            }
+            var projects = await _projects.GetClassProjectsAsync(classId);
+            return projects.Select(proj => new UserClassProjectViewModel
+            {
+                Id = proj.Id,
+                Title = proj.Title,
+                Description = proj.Description,
+                StartDate = proj.StartDate,
+                EndDate = proj.EndDate,
+                Status = proj.Status
+            }).ToList();
+        }
     }
 }
