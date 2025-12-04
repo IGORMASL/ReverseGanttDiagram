@@ -12,9 +12,11 @@ namespace GanttChartAPI.Services
         private readonly IProjectRepository _projects;
         private readonly ITopicClassRepository _classes;
         private readonly IClassRelationRepository _classRelations;
-        public ProjectService(IProjectRepository projects, IClassRelationRepository classRelations)
+        public ProjectService(IProjectRepository projects, ITopicClassRepository calsses, IClassRelationRepository classRelations)
         {
+
             _projects = projects;
+            _classes = calsses;
             _classRelations = classRelations;
         }
         public async Task<ProjectViewModel> CreateProjectAsync(string creatorRole, Guid creatorId, ProjectDto proj)
