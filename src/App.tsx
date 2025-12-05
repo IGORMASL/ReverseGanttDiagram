@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
-import ClassesPage from "./pages/ClassesPage.tsx"
-import AuthPage from "./pages/AuthPage.tsx"
-import ProtectedRoute from "./components/ProtectedRoute.tsx"
+import ClassesPage from "./pages/ClassesPage"
+import AuthPage from "./pages/AuthPage"
+import ProtectedRoute from "./components/ProtectedRoute"
+import ClassDetailsPage from "./pages/ClassDetailsPage"
 
 export default function App() {
     return (
@@ -12,6 +13,15 @@ export default function App() {
                     element={
                         <ProtectedRoute>
                             <ClassesPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/classes/:classId"
+                    element={
+                        <ProtectedRoute>
+                            <ClassDetailsPage />
                         </ProtectedRoute>
                     }
                 />

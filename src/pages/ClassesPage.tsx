@@ -1,8 +1,17 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import HeaderClasses from "../components/HeaderClasses";
 import ClassCard from "../components/ClassCard";
+import JoinClassModal from "../components/JoinClassModal";
 import type { UserClass, ClassView, ClassCreateDto } from "../api/classes";
-import { getUserClasses, getAllClasses, deleteClass, createClass, updateClass } from "../api/classes";
+import {
+  getUserClasses,
+  getAllClasses,
+  deleteClass,
+  createClass,
+  updateClass,
+  DEFAULT_CLASS_COLOR,
+} from "../api/classes";
 import { getProfile } from "../api/users";
 import CreateClassModal from "../components/CreateClassModal";
 
@@ -20,6 +29,7 @@ async function loadClassesForUser(user: CurrentUser): Promise<UserClass[]> {
       classId: cls.id,
       className: cls.title,
       description: cls.description ?? "",
+      color: cls.color ?? DEFAULT_CLASS_COLOR,
       // classRole не задаём — для админа метка роли не нужна
     }));
   }
@@ -34,6 +44,8 @@ export default function ClassesPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<UserClass | null>(null);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const isAdmin = user?.role === 1;
 
@@ -103,7 +115,7 @@ export default function ClassesPage() {
     color: string;
   }) => {
     try {
-      const payload: ClassCreateDto = { title, description };
+      const payload: ClassCreateDto = { title, description, color };
       const newClass: ClassView = await createClass(payload);
 
       setClasses((prev) => [
@@ -113,7 +125,7 @@ export default function ClassesPage() {
           className: newClass.title,
           description: newClass.description ?? "",
           classRole: 1, // Для админа роль не имеет значения
-          color,
+          color: newClass.color ?? color ?? DEFAULT_CLASS_COLOR,
         },
       ]);
     } catch (err: any) {
@@ -143,6 +155,7 @@ export default function ClassesPage() {
       const updated = await updateClass(editingClass.classId, {
         title,
         description,
+        color,
       });
 
       setClasses((prev) =>
@@ -152,7 +165,7 @@ export default function ClassesPage() {
                 ...c,
                 className: updated.title,
                 description: updated.description,
-                color,
+                color: updated.color ?? color ?? DEFAULT_CLASS_COLOR,
               }
             : c
         )
@@ -176,6 +189,7 @@ export default function ClassesPage() {
         fullName={user.fullName}
         systemRole={isAdmin ? "Admin" : "User"}
         onCreateClass={() => setModalOpen(true)}
+        onAddClass={() => setJoinModalOpen(true)}
       />
 
       {/* Заголовок секции классов */}
@@ -194,11 +208,13 @@ export default function ClassesPage() {
               classRole={!isAdmin ? cls.classRole : undefined}
               description={cls.description}
               color={cls.color ?? "#C6D3E1"}
-              onClick={() => console.log(`Открыть класс ${cls.className}`)}
-              {...(user.role === 1
+              onClick={() => navigate(`/classes/${cls.classId}`)}
+              {...((user.role === 1 || cls.classRole === 1)
                 ? {
                     onEdit: () => setEditingClass(cls),
-                    onDelete: () => handleDeleteClass(cls.classId),
+                    ...(user.role === 1
+                      ? { onDelete: () => handleDeleteClass(cls.classId) }
+                      : {}),
                   }
                 : {})}
             />
@@ -221,6 +237,11 @@ export default function ClassesPage() {
         initialDescription={editingClass?.description ?? ""}
         initialColor={editingClass?.color ?? "#C6D3E1"}
         onSubmit={handleEditSubmit}
+      />
+
+      <JoinClassModal
+        isOpen={joinModalOpen}
+        onClose={() => setJoinModalOpen(false)}
       />
     </div>
   );

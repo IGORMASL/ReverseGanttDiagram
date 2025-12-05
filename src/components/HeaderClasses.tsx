@@ -8,16 +8,32 @@ interface HeaderProps {
   fullName: string;
   systemRole: "User" | "Admin";
   onCreateClass?: () => void;
+  onAddClass?: () => void;
+  /** Показывать ли поиск по классам (по умолчанию true) */
+  showSearch?: boolean;
+  /** Показывать ли кнопку создания/добавления класса (по умолчанию true) */
+  showClassAction?: boolean;
 }
 
-const HeaderClasses: FC<HeaderProps> = ({ fullName, systemRole, onCreateClass }) => {
+const HeaderClasses: FC<HeaderProps> = ({
+  fullName,
+  systemRole,
+  onCreateClass,
+  onAddClass,
+  showSearch = true,
+  showClassAction = true,
+}) => {
   const navigate = useNavigate();
 
   const handleAction = () => {
     if (systemRole === "Admin") {
       onCreateClass?.(); // открыть модалку создания класса
     } else {
-      alert("Добавить класс (ввести код/ссылку) — реализовать позже.");
+      if (onAddClass) {
+        onAddClass();
+      } else {
+        alert("Добавить класс (ввести код/ссылку) — реализовать позже.");
+      }
     }
   };
 
@@ -39,33 +55,37 @@ const HeaderClasses: FC<HeaderProps> = ({ fullName, systemRole, onCreateClass })
         <h1 className="text-xl font-semibold">Реверсивная диаграмма Ганта</h1>
       </Link>
 
-      {/* Поиск */}
-      <div className="flex-1 flex justify-start px-8 mx-20">
-        <div className="flex items-center gap-3 w-full max-w-md">
-          <input
-            type="text"
-            placeholder="Поиск по классам..."
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm shadow-sm
-                       focus:ring-2 focus:ring-black outline-none transition"
-          />
-          <button
-            onClick={handleSearch}
-            className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-black hover:text-white
-                       border border-gray-300 shadow-sm transition text-sm"
-          >
-            Найти
-          </button>
+      {/* Поиск (опционально) */}
+      {showSearch && (
+        <div className="flex-1 flex justify-start px-8 mx-20">
+          <div className="flex items-center gap-3 w-full max-w-md">
+            <input
+              type="text"
+              placeholder="Поиск по классам..."
+              className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm shadow-sm
+                         focus:ring-2 focus:ring-black outline-none transition"
+            />
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-black hover:text-white
+                         border border-gray-300 shadow-sm transition text-sm"
+            >
+              Найти
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Кнопка создания/добавления класса */}
+      {/* Блок действий и профиля */}
       <div className="flex items-center gap-6">
-        <button
-          onClick={handleAction}
-          className="px-4 py-2 bg-indigo-200 rounded-lg hover:bg-black hover:text-white transition text-sm"
-        >
-          {systemRole === "Admin" ? "Создать класс" : "Добавить класс"}
-        </button>
+        {showClassAction && (
+          <button
+            onClick={handleAction}
+            className="px-4 py-2 bg-indigo-200 rounded-lg hover:bg-black hover:text-white transition text-sm"
+          >
+            {systemRole === "Admin" ? "Создать класс" : "Добавить класс"}
+          </button>
+        )}
 
         {/* Меню профиля */}
         <div className="relative group">
