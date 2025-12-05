@@ -10,7 +10,7 @@ namespace GanttChartAPI.Models
         public WorkProject Project { get; set; }
         public Guid TeamId { get; set; }
         public Team Team { get; set; }
-        public ProjectTaskStatus Status { get; set; }
+        public ProjectStatus Status { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 

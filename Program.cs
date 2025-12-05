@@ -71,6 +71,7 @@ builder.Services.AddScoped<IInviteService, InviteService>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IProjectSolutionRepository, ProjectSolutionRepository>();
 builder.Services.AddSingleton<JwtProvider>();
 builder.Services.AddAuthentication("Bearer")

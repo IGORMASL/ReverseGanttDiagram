@@ -10,22 +10,23 @@ namespace GanttChartAPI.Repositories
         {
             _context = context;
         }
-        public async Task CreateTeamAsync(Team team)
+        public async Task<Team?> CreateAsync(Team team)
         {
             await _context.Teams.AddAsync(team);
             await _context.SaveChangesAsync();
+            return team;
         }
-        public async Task UpdateTeamAsync(Team team)
+        public async Task UpdateAsync(Team team)
         {
             _context.Teams.Update(team);
             await _context.SaveChangesAsync();
         }
-        public async Task DeleteTeamAsync(Team team)
+        public async Task DeleteAsync(Team team)
         {
             _context.Teams.Remove(team);
             await _context.SaveChangesAsync();
         }
-        public async Task<Team?> GetTeamByIdAsync(Guid teamId)
+        public async Task<Team?> GetByIdAsync(Guid teamId)
         {
             return await _context.Teams.FindAsync(teamId);
         }
@@ -37,6 +38,11 @@ namespace GanttChartAPI.Repositories
         {
             return await Task.FromResult(_context.Teams.FirstOrDefault(t => t.ProjectId == projectId && 
                 t.Members.Any(m => m.UserId == userId)));
+        }
+        public async Task AddTeamMemberAsync(TeamMember membership)
+        {
+            await _context.TeamMembers.AddAsync(membership);
+            await _context.SaveChangesAsync();
         }
     }
 }

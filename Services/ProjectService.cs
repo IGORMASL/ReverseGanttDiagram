@@ -12,12 +12,17 @@ namespace GanttChartAPI.Services
         private readonly IProjectRepository _projects;
         private readonly ITopicClassRepository _classes;
         private readonly IClassRelationRepository _classRelations;
-        public ProjectService(IProjectRepository projects, ITopicClassRepository calsses, IClassRelationRepository classRelations)
+        private readonly IProjectSolutionRepository _solutions;
+        public ProjectService(IProjectRepository projects, 
+            ITopicClassRepository calsses, 
+            IClassRelationRepository classRelations,
+            IProjectSolutionRepository solutions)
         {
 
             _projects = projects;
             _classes = calsses;
             _classRelations = classRelations;
+            _solutions = solutions;
         }
         public async Task<ProjectViewModel> CreateProjectAsync(string creatorRole, Guid creatorId, ProjectDto proj)
         {
@@ -145,17 +150,20 @@ namespace GanttChartAPI.Services
             var classRole = await _classRelations.GetUserClassRoleAsync(userId, classId);
             if (classRole == null)
             {
-                throw new ForbiddenException("Недостаточно прав для просмотра проектов в этом классе");
+                throw new ForbiddenException("У вас нет проектов в этом классе");
             }
-            var projects = await _projects.GetClassProjectsAsync(classId);
-            return projects.Select(proj => new UserClassProjectViewModel
+            var topicClass = await _classes.GetByIdAsync(classId) ??
+                throw new NotFoundException("Класс не найден");
+
+            var solutions = await _solutions.GetUserClassSolutionsAsync(userId, classId);
+            return solutions.Select(sol => new UserClassProjectViewModel
             {
-                Id = proj.Id,
-                Title = proj.Title,
-                Description = proj.Description,
-                StartDate = proj.StartDate,
-                EndDate = proj.EndDate,
-                Status = proj.Status
+                Id = sol.Id,
+                Title = sol.Project.Title,
+                Description = sol.Project.Description,
+                StartDate = sol.StartDate,
+                EndDate = sol.EndDate,
+                Status = sol.Status
             }).ToList();
         }
     }

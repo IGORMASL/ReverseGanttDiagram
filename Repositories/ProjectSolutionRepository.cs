@@ -1,5 +1,6 @@
 ﻿using GanttChartAPI.Data;
 using GanttChartAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace GanttChartAPI.Repositories
 {
@@ -10,10 +11,21 @@ namespace GanttChartAPI.Repositories
         {
             _context = context;
         }
-        public async Task AddTeamSollutionAsync(ProjectSolution projectSolution)
+        public async Task CreateAsync(ProjectSolution projectSolution)
         {
             await _context.ProjectSolutions.AddAsync(projectSolution);
             await _context.SaveChangesAsync();
+        }
+        public async Task<List<ProjectSolution>> GetUserClassSolutionsAsync(Guid userId, Guid classId)
+        {
+            return await _context.ProjectSolutions
+                            .Include(ps => ps.Team)
+                            .ThenInclude(t => t.Members)
+                            .Include(ps => ps.Project)
+                            .Where(ps => ps.Project.TopicClassId == classId &&
+                            ps.Team != null &&
+                            ps.Team.Members.Any(m => m.UserId == userId))
+                            .ToListAsync();
         }
     }
 }
