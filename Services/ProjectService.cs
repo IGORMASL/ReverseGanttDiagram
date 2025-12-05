@@ -157,7 +157,9 @@ namespace GanttChartAPI.Services
             var solutions = await _solutions.GetUserClassSolutionsAsync(userId, classId);
             return solutions.Select(sol => new UserClassProjectViewModel
             {
-                Id = sol.Id,
+                Id = sol.ProjectId,
+                TeamId = sol.TeamId,
+                SolutionId = sol.Id,
                 Title = sol.Project.Title,
                 Description = sol.Project.Description,
                 StartDate = sol.StartDate,

@@ -79,6 +79,7 @@ namespace GanttChartAPI.Services
             }
             topic.Title = dto.Title;
             topic.Description = dto.Description;
+            topic.Color = dto.Color;
             await _classes.UpdateAsync(topic);
             return new ClassViewModel
             {

@@ -65,7 +65,7 @@ namespace GanttChartAPI.Services
             projectTask.Description = task.Description;
             projectTask.StartDate = task.StartDate;
             projectTask.EndDate = task.EndDate;
-            await _tasks.CreateTaskAsync(projectTask);
+            await _tasks.UpdateTaskAsync(projectTask);
         }
         public async Task DeleteTaskAsync(string userRole, Guid userId, Guid taskId)
         {
