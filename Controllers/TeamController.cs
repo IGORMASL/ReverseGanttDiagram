@@ -1,5 +1,6 @@
 ﻿using GanttChartAPI.DTOs;
 using GanttChartAPI.Services;
+using GanttChartAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,15 @@ namespace GanttChartAPI.Controllers
             var userRole = _userContext.GetUserRole();
             await _service.CreateTeamAsync(userRole, userId, team);
             return Ok();
+        }
+        [HttpGet("project")]
+        [Authorize]
+        public async Task<ActionResult<List<TeamViewModel>>> GetProjectTeams(Guid projectId)
+        {
+            var userId = _userContext.GetUserId();
+            var userRole = _userContext.GetUserRole();
+            var teams = await _service.GetProjectTeamsAsync(userRole, userId, projectId);
+            return Ok(teams);
         }
         [HttpPut("members")]
         [Authorize]

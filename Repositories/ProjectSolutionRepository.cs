@@ -16,6 +16,13 @@ namespace GanttChartAPI.Repositories
             await _context.ProjectSolutions.AddAsync(projectSolution);
             await _context.SaveChangesAsync();
         }
+        public async Task<ProjectSolution?> GetByIdAsync(Guid solutionId)
+        {
+            return await _context.ProjectSolutions
+                                 .Include(ps => ps.Team)
+                                 .Include(ps => ps.Project)
+                                 .FirstOrDefaultAsync(ps => ps.Id == solutionId);
+        }
         public async Task<List<ProjectSolution>> GetUserClassSolutionsAsync(Guid userId, Guid classId)
         {
             return await _context.ProjectSolutions

@@ -73,6 +73,8 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IProjectSolutionRepository, ProjectSolutionRepository>();
+builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddSingleton<JwtProvider>();
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer(options =>

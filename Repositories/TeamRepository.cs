@@ -1,5 +1,6 @@
 ﻿using GanttChartAPI.Data;
 using GanttChartAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace GanttChartAPI.Repositories
 {
@@ -28,7 +29,10 @@ namespace GanttChartAPI.Repositories
         }
         public async Task<Team?> GetByIdAsync(Guid teamId)
         {
-            return await _context.Teams.FindAsync(teamId);
+            return await _context.Teams
+                .Include(t => t.Members)
+                .Include(t => t.Solution)
+                .FirstOrDefaultAsync(t => t.Id == teamId);
         }
         public async Task<List<Team>> GetProjectTeamsAsync(Guid projectId)
         {

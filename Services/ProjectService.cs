@@ -147,14 +147,13 @@ namespace GanttChartAPI.Services
         }
         public async Task<List<UserClassProjectViewModel>> GetUserClassProjectsAsync(Guid userId, Guid classId)
         {
+            var topicClass = await _classes.GetByIdAsync(classId) ??
+                throw new NotFoundException("Класс не найден");
             var classRole = await _classRelations.GetUserClassRoleAsync(userId, classId);
             if (classRole == null)
             {
                 throw new ForbiddenException("У вас нет проектов в этом классе");
             }
-            var topicClass = await _classes.GetByIdAsync(classId) ??
-                throw new NotFoundException("Класс не найден");
-
             var solutions = await _solutions.GetUserClassSolutionsAsync(userId, classId);
             return solutions.Select(sol => new UserClassProjectViewModel
             {

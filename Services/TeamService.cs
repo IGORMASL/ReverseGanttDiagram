@@ -3,6 +3,7 @@ using GanttChartAPI.Instruments;
 using GanttChartAPI.Models;
 using GanttChartAPI.Models.Enums;
 using GanttChartAPI.Repositories;
+using GanttChartAPI.ViewModels;
 using System.Security.Cryptography.X509Certificates;
 
 namespace GanttChartAPI.Services
@@ -59,6 +60,8 @@ namespace GanttChartAPI.Services
                 throw new NotFoundException("Проект не найден");
             var topicClass = await _classes.GetByIdAsync(project.TopicClassId) ??
                throw new NotFoundException("Класс проекта не найден");
+            var memberClassRole = await _classRelations.GetUserClassRoleAsync(memberId, topicClass.Id) ??
+                throw new InvalidOperationException("Пользователь не является учеником этого класса");
             var classRole = await _classRelations.GetUserClassRoleAsync(userId, topicClass.Id);
             if (userRole != "Admin" && classRole is not TeacherRelation)
                 throw new ForbiddenException("Недостаточно прав для добавления участника команды в данном проекте");
@@ -69,6 +72,23 @@ namespace GanttChartAPI.Services
                 UserId = memberId,
                 TeamId = teamId
             });
+        }
+        public async Task<List<TeamViewModel>> GetProjectTeamsAsync(string userRole, Guid userId, Guid projectId)
+        {
+            var project = await _projects.GetByIdAsync(projectId) ??
+                throw new NotFoundException("Проект не найден");
+            var topicClass = await _classes.GetByIdAsync(project.TopicClassId) ??
+               throw new NotFoundException("Класс проекта не найден");
+            var classRole = await _classRelations.GetUserClassRoleAsync(userId, topicClass.Id);
+            if (userRole != "Admin" && classRole is not TeacherRelation)
+                throw new ForbiddenException("Недостаточно прав для просмотра команд проекта");
+            var teams = await _teams.GetProjectTeamsAsync(projectId);
+            return teams.Select(t => new TeamViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                ProjectId = t.ProjectId
+            }).ToList();
         }
     }
 }

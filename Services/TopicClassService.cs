@@ -132,11 +132,13 @@ namespace GanttChartAPI.Services
             var students = await _classes.GetClassStudentsAsync(classId);
             var members = teachers.Select(t => new ClassMemberViewModel
             {
+                Id = t.Id,
                 FullName = t.FullName,
                 Email = t.Email,
                 ClassRole = 1
             }).Concat(students.Select(s => new ClassMemberViewModel
             {
+                Id = s.Id,
                 FullName = s.FullName,
                 Email = s.Email,
                 ClassRole = 0

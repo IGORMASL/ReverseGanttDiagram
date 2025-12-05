@@ -56,8 +56,8 @@ namespace GanttChartAPI.Repositories
                 .Include(c => c.Students)
                 .ThenInclude(sr => sr.User)
                 .FirstOrDefaultAsync(c => c.Id == classId);
-            var teachers = topic.Students.Select(tr => tr.User).ToList();
-            return teachers;
+            var students = topic.Students.Select(tr => tr.User).ToList();
+            return students;
         }
     }
 }
