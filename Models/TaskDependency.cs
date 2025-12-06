@@ -11,7 +11,6 @@ namespace GanttChartAPI.Models
         [ForeignKey("PredecessorTaskId")]
         public ProjectTask PredecessorTask { get; set; }
         public TaskDependency()
-        {
-        }
+        {}
     }
 }

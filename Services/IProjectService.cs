@@ -12,5 +12,6 @@ namespace GanttChartAPI.Services
         Task<List<ProjectViewModel>> GetClassProjectsAsync(string userRole, Guid userId, Guid classId);
         Task<ProjectViewModel?> GetProjectByIdAsync(string userRole, Guid userId, Guid id);
         Task<List<UserClassProjectViewModel>> GetUserClassProjectsAsync(Guid userId, Guid classId);
+        Task<List<ProjectSolutionViewModel>> GetAllProjectSolutionsAsync(string userRole, Guid userId, Guid projectId);
     }
 }

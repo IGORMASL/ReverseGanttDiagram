@@ -52,7 +52,7 @@ namespace GanttChartAPI.Controllers
 
         [HttpGet("team/{teamId}")]
         [Authorize]
-        public async Task<ActionResult<List<TaskViewModel>>> GetTeamTasks([FromRoute] Guid teamId)
+        public async Task<ActionResult<List<TaskTreeViewModel>>> GetTeamTasks([FromRoute] Guid teamId)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();

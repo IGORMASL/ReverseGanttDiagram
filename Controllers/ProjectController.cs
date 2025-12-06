@@ -65,12 +65,21 @@ namespace GanttChartAPI.Controllers
             var project = await _service.GetProjectByIdAsync(userRole, userId, projectId);
             return Ok(project);
         }
-        [HttpGet("class/user")]
+        [HttpGet("class/{classId}/user")]
         [Authorize]
         public async Task<ActionResult<List<UserClassProjectViewModel>>> GetUserClassProjects(Guid classId)
         {
             var userId = _userContext.GetUserId();
             var projects = await _service.GetUserClassProjectsAsync(userId, classId);
+            return Ok(projects);
+        }
+        [HttpGet("{projectId}/solutions")]
+        [Authorize]
+        public async Task<ActionResult<List<ProjectSolutionViewModel>>> GetAllProjectSolutions(Guid projectId)
+        {
+            var userId = _userContext.GetUserId();
+            var userRole = _userContext.GetUserRole();
+            var projects = await _service.GetAllProjectSolutionsAsync(userRole, userId, projectId);
             return Ok(projects);
         }
 

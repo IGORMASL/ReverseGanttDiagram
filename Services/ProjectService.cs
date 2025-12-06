@@ -167,5 +167,28 @@ namespace GanttChartAPI.Services
                 Status = sol.Status
             }).ToList();
         }
+        public async Task<List<ProjectSolutionViewModel>> GetAllProjectSolutionsAsync(string userRole, Guid userId, Guid projectId)
+        {
+            var existingProject = await _projects.GetByIdAsync(projectId) ??
+                throw new Exception("Проект не найден");
+            var projectClass = await _classes.GetByIdAsync(existingProject.TopicClassId) ??
+               throw new NotFoundException("Класс проекта не найден");
+            var classRole = await _classRelations.GetUserClassRoleAsync(userId, projectClass.Id);
+            if (userRole != "Admin" && classRole is not TeacherRelation)
+            {
+                throw new ForbiddenException("Недостаточно прав для просмотра решений проектов в этом классе");
+            }
+            var solutions = await _solutions.GetAllProjectSolutionsAsync(projectId);
+            return solutions.Select(sol => new ProjectSolutionViewModel
+            {
+                Id = sol.ProjectId,
+                TeamId = sol.TeamId,
+                TeamName = sol.Team.Name,
+                SolutionId = sol.Id,
+                StartDate = sol.StartDate,
+                EndDate = sol.EndDate,
+                Status = sol.Status
+            }).ToList();
+        }
     }
 }
