@@ -9,6 +9,6 @@ namespace GanttChartAPI.Services
         Task CreateTeamAsync(string userRole, Guid userId, TeamDto team);
         Task AddTeamMemberAsync(string userRole, Guid userId, Guid memberId, Guid teamId);
         Task <List<TeamViewModel>> GetProjectTeamsAsync(string userRole, Guid userId, Guid projectId);
-        Task<List<ClassMemberViewModel>> GetTeamMembersAsync(string userRole, Guid userId, Guid teamId);
+        Task<TeamViewModel> GetTeamByIdAsync(string userRole, Guid userId, Guid teamId);
     }
 }

@@ -88,7 +88,7 @@ namespace GanttChartAPI.Services
                 Id = t.Id,
                 Name = t.Name,
                 ProjectId = t.ProjectId,
-                Members = t.Members.Select(m => new ClassMemberViewModel
+                Members = t.Members.Select(m => new TeamMemberViewModel
                 {
                     Id = m.UserId,
                     FullName = m.User.FullName,
@@ -96,7 +96,7 @@ namespace GanttChartAPI.Services
                 }).ToList()
             }).ToList();
         }
-        public async Task<List<ClassMemberViewModel>> GetTeamMembersAsync(string userRole, Guid userId, Guid teamId)
+        public async Task<TeamViewModel> GetTeamByIdAsync(string userRole, Guid userId, Guid teamId)
         {
             var team = await _teams.GetByIdAsync(teamId) ??
                 throw new NotFoundException("Такой команды не существует");
@@ -107,13 +107,19 @@ namespace GanttChartAPI.Services
             var classRole = await _classRelations.GetUserClassRoleAsync(userId, topicClass.Id);
             var isUserInTeam = team.Members.Any(m => m.UserId == userId);
             if (userRole != "Admin" && !isUserInTeam && classRole is not TeacherRelation)
-                throw new ForbiddenException("Недостаточно прав для просмотра участников команды");
-            return team.Members.Select(m => new ClassMemberViewModel
+                throw new ForbiddenException("Недостаточно прав для просмотра данных команды");
+            return new TeamViewModel
             {
-                Id = m.UserId,
-                FullName = m.User.FullName,
-                Email = m.User.Email
-            }).ToList();
+                Id = team.Id,
+                Name = team.Name,
+                ProjectId = team.ProjectId,
+                Members = team.Members.Select(m => new TeamMemberViewModel
+                {
+                    Id = m.UserId,
+                    FullName = m.User.FullName,
+                    Email = m.User.Email
+                }).ToList()
+            };
         }
     }
 }
