@@ -1,15 +1,13 @@
 // src/api/projects.ts
 import api from "./axios";
+import { PROJECT_STATUS_LABELS } from "../constants";
 
 // ---- Типы -----------------------------------------------------------------
 
 export type ProjectStatus = 0 | 1 | 2; // Planned = 0, InProgress = 1, Completed = 2
 
-export const ProjectStatusLabels = {
-  0: "Запланировано",
-  1: "Выполняется",
-  2: "Завершено",
-} as const;
+// Экспортируем метки статусов из constants
+export const ProjectStatusLabels = PROJECT_STATUS_LABELS;
 
 export type Project = {
   id: string;
@@ -19,6 +17,9 @@ export type Project = {
   endDate: string;
   status: ProjectStatus;
   classId: string;
+  // Для студентов (из UserClassProjectViewModel)
+  teamId?: string;
+  solutionId?: string;
 };
 
 export type ProjectCreateDto = {
@@ -50,14 +51,39 @@ export async function getClassProjects(classId: string): Promise<Project[]> {
 }
 
 /**
- * GET /api/project/class/user?classId=... — проекты класса для текущего пользователя (для студентов).
+ * GET /api/project/class/{classId}/user — проекты класса для текущего пользователя (для студентов).
+ * Возвращает проекты с teamId и solutionId.
  */
 export async function getUserClassProjects(classId: string): Promise<Project[]> {
-  const res = await api.get<Omit<Project, "classId">[]>(`/project/class/user`, {
-    params: { classId },
-  });
+  const res = await api.get<{
+    id: string;
+    title: string;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    status: ProjectStatus;
+    teamId: string;
+    solutionId: string;
+  }[]>(`/project/class/${classId}/user`);
+  
+  console.log("Raw response from getUserClassProjects:", res.data);
+  
   // Добавляем classId к каждому проекту
-  return res.data.map((p) => ({ ...p, classId }));
+  const projects = res.data.map((p) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    startDate: p.startDate,
+    endDate: p.endDate,
+    status: p.status,
+    classId,
+    teamId: p.teamId,
+    solutionId: p.solutionId,
+  }));
+  
+  console.log("Mapped projects:", projects);
+  
+  return projects;
 }
 
 /**

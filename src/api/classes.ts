@@ -43,6 +43,7 @@ export type ClassProject = {
 };
 
 export type ClassMember = {
+  id: string; // userId
   fullName: string;
   email: string;
   roleInClass: ClassRole;
@@ -64,6 +65,7 @@ type ClassDetailsResponse = {
   color?: string;
   projects?: ClassProject[];
   members?: {
+    id: string;
     fullName: string;
     email: string;
     classRole: number;
@@ -149,6 +151,7 @@ export async function getClassDetails(id: string): Promise<ClassDetails> {
     projects: res.data.projects ?? [],
     members:
       res.data.members?.map((m) => ({
+        id: m.id,
         fullName: m.fullName,
         email: m.email,
         roleInClass: (m.classRole as ClassRole) ?? 0,
@@ -162,12 +165,14 @@ export async function getClassDetails(id: string): Promise<ClassDetails> {
  */
 export async function getClassMembers(classId: string): Promise<ClassMember[]> {
   const res = await api.get<{
+    id: string;
     fullName: string;
     email: string;
     classRole: number;
   }[]>(`/class/members/${classId}`);
 
   return res.data.map((m) => ({
+    id: m.id,
     fullName: m.fullName,
     email: m.email,
     roleInClass: (m.classRole as ClassRole) ?? 0,

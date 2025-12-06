@@ -3,6 +3,7 @@ import ClassesPage from "./pages/ClassesPage"
 import AuthPage from "./pages/AuthPage"
 import ProtectedRoute from "./components/ProtectedRoute"
 import ClassDetailsPage from "./pages/ClassDetailsPage"
+import ProjectPage from "./pages/ProjectPage"
 
 export default function App() {
     return (
@@ -22,6 +23,15 @@ export default function App() {
                     element={
                         <ProtectedRoute>
                             <ClassDetailsPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/classes/:classId/projects/:projectId"
+                    element={
+                        <ProtectedRoute>
+                            <ProjectPage />
                         </ProtectedRoute>
                     }
                 />

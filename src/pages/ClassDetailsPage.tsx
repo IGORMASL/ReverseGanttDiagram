@@ -1,254 +1,113 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import HeaderClasses from "../components/HeaderClasses";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import CreateInviteModal from "../components/CreateInviteModal";
 import ProjectModal from "../components/ProjectModal";
-import {
-  getClassDetails,
-  getClassMembers,
-  deleteClass,
-  updateClass,
-  type ClassDetails,
-  type ClassMember,
-} from "../api/classes";
-import {
-  getClassProjects,
-  getUserClassProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-  ProjectStatusLabels,
-  type Project,
-} from "../api/projects";
-import { getProfile } from "../api/users";
 import CreateClassModal from "../components/CreateClassModal";
-
-type CurrentUser = {
-  fullName: string;
-  email: string;
-  role: 0 | 1; // 0 — обычный пользователь, 1 — админ
-};
-
-type MembersFilter = "all" | "teachers" | "students";
+import { ProjectStatusLabels } from "../api/projects";
+import { useAuth } from "../hooks/useAuth";
+import { useClassDetails } from "../hooks/useClassDetails";
+import { isSystemAdmin } from "../utils/permissions";
+import type { Project } from "../api/projects";
+import type { MembersFilter } from "../types";
 
 export default function ClassDetailsPage() {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [details, setDetails] = useState<ClassDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
+  const {
+    details,
+    projects,
+    loading,
+    error,
+    canManage,
+    handleDeleteClass,
+    handleUpdateClass,
+    handleCreateProject,
+    handleUpdateProject,
+    handleDeleteProject,
+  } = useClassDetails({ classId, user });
+
+  // UI состояние
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<0 | 1>(0);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [membersFilter, setMembersFilter] = useState<MembersFilter>("all");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
-  const isAdmin = user?.role === 1;
-  const [canManage, setCanManage] = useState(false);
+  const isAdmin = isSystemAdmin(user);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!classId) return;
-
-      try {
-        const profile = await getProfile();
-        setUser({
-          fullName: profile.fullName,
-          email: profile.email,
-          role: profile.role === 1 ? 1 : 0,
-        });
-
-        const [classData, members] = await Promise.all([
-          getClassDetails(classId),
-          getClassMembers(classId),
-        ]);
-
-        // Определяем, может ли пользователь управлять этим классом:
-        //  - системный админ
-        //  - или учитель в рамках этого класса (roleInClass === 1 по email)
-        const isSystemAdmin = profile.role === 1;
-        const isTeacherInClass = members.some(
-          (m) => m.email === profile.email && m.roleInClass === 1
-        );
-        const canManageClass = isSystemAdmin || isTeacherInClass;
-
-        // Для студентов используем getUserClassProjects, для админов/учителей - getClassProjects
-        let projectsData: Project[] = [];
-        try {
-          if (canManageClass) {
-            projectsData = await getClassProjects(classId);
-          } else {
-            projectsData = await getUserClassProjects(classId);
-          }
-        } catch (err: any) {
-          // Если не удалось загрузить проекты, просто оставляем пустой массив
-          console.warn("Не удалось загрузить проекты:", err);
-          projectsData = [];
-        }
-
-        const nextDetails: ClassDetails = {
-          ...classData,
-          projects: classData.projects ?? [],
-          members,
-        };
-
-        setProjects(projectsData);
-        setCanManage(canManageClass);
-        setDetails(nextDetails);
-      } catch (err: any) {
-        console.error("Ошибка загрузки класса:", err);
-        const message =
-          err?.response?.data?.message ??
-          err?.response?.data ??
-          err?.message ??
-          "Не удалось загрузить класс";
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [classId]);
-
-  const handleDeleteClass = async () => {
-    if (!details) return;
+  const onDeleteClass = async () => {
     const confirmed = window.confirm("Удалить этот класс? Действие необратимо.");
     if (!confirmed) return;
 
     try {
-      await deleteClass(details.id);
+      await handleDeleteClass();
       alert("Класс удалён");
       navigate("/classes");
     } catch (err: any) {
-      console.error("Ошибка удаления класса:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Не удалось удалить класс";
-      alert(message);
+      alert(err.message || "Не удалось удалить класс");
     }
   };
 
-  const handleEditSubmit = async ({
-    title,
-    description,
-    color,
-  }: {
+  const onEditClass = async (data: {
     title: string;
     description: string;
     color: string;
   }) => {
-    if (!details) return;
-
     try {
-      const updated = await updateClass(details.id, { title, description, color });
-      setDetails((prev) =>
-        prev
-          ? {
-              ...prev,
-              title: updated.title,
-              description: updated.description ?? "",
-              color: updated.color ?? color,
-            }
-          : prev
-      );
+      await handleUpdateClass(data);
+      setEditModalOpen(false);
     } catch (err: any) {
-      console.error("Ошибка при изменении класса:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Не удалось изменить класс";
-      throw new Error(message);
+      alert(err.message || "Не удалось изменить класс");
     }
   };
 
-  const handleInvite = async () => {
+  const onInvite = async () => {
     if (!classId || !inviteEmail.trim()) return;
 
     setInviteLoading(true);
-
-    // TODO: когда будет готов бэкенд, здесь нужно вызвать
-    // await addMemberToClass(classId, { email: inviteEmail.trim(), role: inviteRole })
-    // и, при необходимости, обновить список участников ответом сервера.
-
-    // Пока просто обновляем локальное состояние как заглушку.
-    setDetails((prev: ClassDetails | null) => {
+    // TODO: когда будет готов бэкенд, здесь нужно вызвать addMemberToClass
+    setDetails((prev) => {
       if (!prev) return prev;
-
-      const newMember: ClassMember = {
+      const newMember = {
+        id: Math.random().toString(36).slice(2),
         fullName: inviteEmail.trim(),
         email: inviteEmail.trim(),
         roleInClass: inviteRole,
       };
-
       return {
         ...prev,
         members: [...prev.members, newMember],
       };
     });
-
     setInviteEmail("");
     alert("Участник добавлен локально (без запроса к серверу).");
     setInviteLoading(false);
   };
 
-  const handleCreateProject = async ({
-    title,
-    description,
-    startDate,
-    endDate,
-    status,
-  }: {
+  const onCreateProject = async (data: {
     title: string;
     description: string;
     startDate: string;
     endDate: string;
     status: Project["status"];
   }) => {
-    if (!classId) return;
-
     try {
-      await createProject({
-        title,
-        description,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-        status,
-        classId,
-      });
-
-      // Перезагружаем список проектов
-      const updatedProjects = await getClassProjects(classId);
-      setProjects(updatedProjects);
+      await handleCreateProject(data);
+      setProjectModalOpen(false);
     } catch (err: any) {
-      console.error("Ошибка при создании проекта:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Не удалось создать проект";
-      throw new Error(message);
+      alert(err.message || "Не удалось создать проект");
     }
   };
 
-  const handleEditProject = async ({
-    title,
-    description,
-    startDate,
-    endDate,
-    status,
-  }: {
+  const onEditProject = async (data: {
     title: string;
     description: string;
     startDate: string;
@@ -258,46 +117,23 @@ export default function ClassDetailsPage() {
     if (!editingProject) return;
 
     try {
-      await updateProject(editingProject.id, {
-        title,
-        description,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-        status,
-        classId: editingProject.classId,
-      });
-
-      // Перезагружаем список проектов
-      const updatedProjects = await getClassProjects(editingProject.classId);
-      setProjects(updatedProjects);
+      await handleUpdateProject(editingProject.id, data);
+      setProjectModalOpen(false);
       setEditingProject(null);
     } catch (err: any) {
-      console.error("Ошибка при изменении проекта:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Не удалось изменить проект";
-      throw new Error(message);
+      alert(err.message || "Не удалось изменить проект");
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
+  const onDeleteProject = async (projectId: string) => {
     const confirmed = window.confirm("Удалить этот проект? Действие необратимо.");
     if (!confirmed) return;
 
     try {
-      await deleteProject(projectId);
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      await handleDeleteProject(projectId);
       alert("Проект удалён");
     } catch (err: any) {
-      console.error("Ошибка при удалении проекта:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Не удалось удалить проект";
-      alert(message);
+      alert(err.message || "Не удалось удалить проект");
     }
   };
 
@@ -350,7 +186,7 @@ export default function ClassDetailsPage() {
                   <button
                     type="button"
                     className="px-4 py-2 rounded-lg bg-white text-xs md:text-sm text-red-600 hover:bg-red-50 transition"
-                    onClick={handleDeleteClass}
+                    onClick={onDeleteClass}
                   >
                     Удалить класс
                   </button>
@@ -374,11 +210,11 @@ export default function ClassDetailsPage() {
           {/* Левая колонка: проекты */}
           <div>
             <div className="flex items-center mb-4">
-              <h3 className="text-2xl font-semibold mr-5  text-gray-900">Проекты</h3>
+              <h3 className="text-2xl font-semibold mr-5 text-gray-900">Проекты</h3>
               {canManage && (
                 <button
                   type="button"
-                  className="w-auto h-9 px-4 py-2  flex items-center justify-center rounded-xl border border-gray-300 bg-white text-center text-xs leading-none hover:bg-gray-100 transition"
+                  className="w-auto h-9 px-4 py-2 flex items-center justify-center rounded-xl border border-gray-300 bg-white text-center text-xs leading-none hover:bg-gray-100 transition"
                   onClick={() => {
                     setEditingProject(null);
                     setProjectModalOpen(true);
@@ -390,9 +226,7 @@ export default function ClassDetailsPage() {
             </div>
 
             {projects.length === 0 ? (
-              <p className="text-gray-500 text-sm">
-                В этом классе пока нет проектов.
-              </p>
+              <p className="text-gray-500 text-sm">В этом классе пока нет проектов.</p>
             ) : (
               <div className="space-y-4">
                 {projects.map((project) => {
@@ -428,7 +262,7 @@ export default function ClassDetailsPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteProject(project.id)}
+                                onClick={() => onDeleteProject(project.id)}
                                 className="text-xs text-red-500 hover:text-red-700"
                               >
                                 Удалить
@@ -450,11 +284,7 @@ export default function ClassDetailsPage() {
                         <Button
                           type="button"
                           className="w-full md:w-32 text-sm py-2 bg-[#CBD5E1] text-gray-900 hover:bg-gray-800 hover:text-white"
-                          onClick={() =>
-                            alert(
-                              "Здесь позже можно открыть саму реверсивную диаграмму Ганта для проекта."
-                            )
-                          }
+                          onClick={() => navigate(`/classes/${details.id}/projects/${project.id}`)}
                         >
                           Открыть
                         </Button>
@@ -484,7 +314,7 @@ export default function ClassDetailsPage() {
             </div>
 
             {/* Фильтры участников */}
-            <div className=" px-4 py-3 mb-4 mr-20 flex flex-wrap items-center justify-between text-xs md:text-sm">
+            <div className="px-4 py-3 mb-4 mr-20 flex flex-wrap items-center justify-between text-xs md:text-sm">
               <label className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -500,9 +330,7 @@ export default function ClassDetailsPage() {
                   className="rounded border-gray-300 text-black"
                   checked={membersFilter === "teachers"}
                   onChange={() =>
-                    setMembersFilter(
-                      membersFilter === "teachers" ? "all" : "teachers"
-                    )
+                    setMembersFilter(membersFilter === "teachers" ? "all" : "teachers")
                   }
                 />
                 <span>Учителя</span>
@@ -513,16 +341,14 @@ export default function ClassDetailsPage() {
                   className="rounded border-gray-300 text-black"
                   checked={membersFilter === "students"}
                   onChange={() =>
-                    setMembersFilter(
-                      membersFilter === "students" ? "all" : "students"
-                    )
+                    setMembersFilter(membersFilter === "students" ? "all" : "students")
                   }
                 />
                 <span>Студенты</span>
               </label>
             </div>
 
-            {/* Форма инвайта (оставляем ниже фильтров) */}
+            {/* Форма инвайта */}
             {canManage && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-4 py-4 mb-4 flex flex-wrap justify-between gap-3 items-center">
                 <Input
@@ -534,9 +360,7 @@ export default function ClassDetailsPage() {
                 />
                 <select
                   value={inviteRole}
-                  onChange={(e) =>
-                    setInviteRole(Number(e.target.value) as 0 | 1)
-                  }
+                  onChange={(e) => setInviteRole(Number(e.target.value) as 0 | 1)}
                   className="border border-gray-300 rounded-lg px-3 py-2 text-xs md:text-sm"
                 >
                   <option value={0}>Студент</option>
@@ -546,7 +370,7 @@ export default function ClassDetailsPage() {
                   type="button"
                   className="w-auto px-6 py-2 text-xs md:text-sm font-medium"
                   disabled={inviteLoading}
-                  onClick={handleInvite}
+                  onClick={onInvite}
                 >
                   {inviteLoading ? "Добавление..." : "Добавить участника"}
                 </Button>
@@ -555,9 +379,7 @@ export default function ClassDetailsPage() {
 
             {/* Список участников с учётом фильтра */}
             {details.members.length === 0 ? (
-              <p className="text-gray-500 text-sm">
-                В этом классе пока нет участников.
-              </p>
+              <p className="text-gray-500 text-sm">В этом классе пока нет участников.</p>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 divide-y divide-gray-100">
                 {details.members
@@ -572,12 +394,8 @@ export default function ClassDetailsPage() {
                       className="flex items-center justify-between px-4 py-3 flex-wrap gap-2"
                     >
                       <div>
-                        <p className="font-medium text-sm text-gray-900">
-                          {member.fullName}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {member.email}
-                        </p>
+                        <p className="font-medium text-sm text-gray-900">{member.fullName}</p>
+                        <p className="text-xs text-gray-500">{member.email}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] md:text-xs bg-gray-100 text-gray-700">
@@ -612,7 +430,7 @@ export default function ClassDetailsPage() {
         initialTitle={details.title}
         initialDescription={details.description ?? ""}
         initialColor={details.color ?? "#C6D3E1"}
-        onSubmit={handleEditSubmit}
+        onSubmit={onEditClass}
       />
 
       <CreateInviteModal
@@ -630,10 +448,8 @@ export default function ClassDetailsPage() {
         mode={editingProject ? "edit" : "create"}
         classId={details.id}
         initialProject={editingProject ?? undefined}
-        onSubmit={editingProject ? handleEditProject : handleCreateProject}
+        onSubmit={editingProject ? onEditProject : onCreateProject}
       />
     </div>
   );
 }
-
-
