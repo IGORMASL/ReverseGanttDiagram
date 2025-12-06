@@ -36,7 +36,9 @@ namespace GanttChartAPI.Repositories
         }
         public async Task<List<Team>> GetProjectTeamsAsync(Guid projectId)
         {
-            return await Task.FromResult(_context.Teams.Where(t => t.ProjectId == projectId).ToList());
+            return await _context.Teams
+                .Include(t => t.Members)
+                .Where(t => t.ProjectId == projectId).ToListAsync();
         }
         public async Task<Team?> GetUserProjectTeamAsync(Guid projectId, Guid userId)
         {

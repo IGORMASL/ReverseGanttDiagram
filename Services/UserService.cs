@@ -52,5 +52,22 @@ namespace GanttChartAPI.Services
                 Role = (int)user.Role
             };
         }
+        public async Task<UserViewModel> GetByEmailAsync(string email)
+        {
+            var user = await _repo.GetByEmailAsync(email);
+            if (user == null)
+            {
+                _logger.LogWarning("User with email {Email} not found.", email);
+                throw new KeyNotFoundException($"User not found.");
+            }
+            return new UserViewModel
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email,
+                Role = (int)user.Role
+            };
+        }
+
     }
 }

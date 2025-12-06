@@ -87,7 +87,13 @@ namespace GanttChartAPI.Services
             {
                 Id = t.Id,
                 Name = t.Name,
-                ProjectId = t.ProjectId
+                ProjectId = t.ProjectId,
+                Members = t.Members.Select(m => new ClassMemberViewModel
+                {
+                    Id = m.UserId,
+                    FullName = m.User.FullName,
+                    Email = m.User.Email
+                }).ToList()
             }).ToList();
         }
     }

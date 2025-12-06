@@ -30,7 +30,7 @@ namespace GanttChartAPI.Controllers
             }
             return Guid.Parse(userIdClaim.Value);
         }
-
+ 
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<List<UserViewModel>>> GetAll()
