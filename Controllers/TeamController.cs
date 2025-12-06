@@ -45,5 +45,14 @@ namespace GanttChartAPI.Controllers
             await _service.AddTeamMemberAsync(requesterRole, requesterId, userId, teamId);
             return Ok();
         }
+        [HttpGet("{teamId}/members")]
+        [Authorize]
+        public async Task<ActionResult<List<ClassMemberViewModel>>> GetTeamMembers(Guid teamId)
+        {
+            var userId = _userContext.GetUserId();
+            var userRole = _userContext.GetUserRole();
+            var members = await _service.GetTeamMembersAsync(userRole, userId, teamId);
+            return Ok(members);
+        }
     }
 }

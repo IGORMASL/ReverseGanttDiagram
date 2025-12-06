@@ -96,5 +96,24 @@ namespace GanttChartAPI.Services
                 }).ToList()
             }).ToList();
         }
+        public async Task<List<ClassMemberViewModel>> GetTeamMembersAsync(string userRole, Guid userId, Guid teamId)
+        {
+            var team = await _teams.GetByIdAsync(teamId) ??
+                throw new NotFoundException("Такой команды не существует");
+            var project = await _projects.GetByIdAsync(team.ProjectId) ??
+                throw new NotFoundException("Проект не найден");
+            var topicClass = await _classes.GetByIdAsync(project.TopicClassId) ??
+               throw new NotFoundException("Класс проекта не найден");
+            var classRole = await _classRelations.GetUserClassRoleAsync(userId, topicClass.Id);
+            var isUserInTeam = team.Members.Any(m => m.UserId == userId);
+            if (userRole != "Admin" && !isUserInTeam && classRole is not TeacherRelation)
+                throw new ForbiddenException("Недостаточно прав для просмотра участников команды");
+            return team.Members.Select(m => new ClassMemberViewModel
+            {
+                Id = m.UserId,
+                FullName = m.User.FullName,
+                Email = m.User.Email
+            }).ToList();
+        }
     }
 }

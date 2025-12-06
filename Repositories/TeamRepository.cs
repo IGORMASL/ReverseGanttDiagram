@@ -31,6 +31,7 @@ namespace GanttChartAPI.Repositories
         {
             return await _context.Teams
                 .Include(t => t.Members)
+                    .ThenInclude(m => m.User)
                 .Include(t => t.Solution)
                 .FirstOrDefaultAsync(t => t.Id == teamId);
         }
