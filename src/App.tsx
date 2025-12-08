@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import ClassesPage from "./pages/ClassesPage"
 import AuthPage from "./pages/AuthPage"
 import ProtectedRoute from "./components/ProtectedRoute"
@@ -9,6 +9,15 @@ export default function App() {
     return (
         <BrowserRouter>
             <Routes>
+                {/* корневой маршрут: в зависимости от наличия токена отправляем на /classes или /auth */}
+                <Route
+                    path="/"
+                    element={
+                        localStorage.getItem("token")
+                            ? <Navigate to="/classes" replace />
+                            : <Navigate to="/auth" replace />
+                    }
+                />
                 <Route
                     path="/classes"
                     element={

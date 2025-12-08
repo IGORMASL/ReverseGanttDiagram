@@ -5,6 +5,7 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 import { loginApi, registerApi, saveToken } from "../api/auth";
 import { getProfile } from "../api/users";
+import { getErrorMessage } from "../utils/errorHandling";
 
 type AuthMode = "login" | "register";
 
@@ -60,7 +61,7 @@ export default function AuthPage() {
       // переход на страницу классов
       navigate("/classes");
     } catch (err: any) {
-      const message = err?.response?.data?.message ?? (err?.message ?? "Ошибка");
+      const message = getErrorMessage(err);
       alert(message);
       console.error(err);
     }

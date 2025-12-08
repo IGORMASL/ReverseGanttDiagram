@@ -1,6 +1,7 @@
 import type { FC } from "react";
 import { useState } from "react";
 import { createInvite, type InviteCreateDto } from "../api/invite";
+import { getErrorMessage } from "../utils/errorHandling";
 
 interface CreateInviteModalProps {
   isOpen: boolean;
@@ -38,11 +39,7 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
       setInviteCode(data.inviteId);
     } catch (err: any) {
       console.error("Ошибка при создании приглашения:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Не удалось создать приглашение";
+      const message = getErrorMessage(err) || "Не удалось создать приглашение";
       alert(message);
     } finally {
       setLoading(false);

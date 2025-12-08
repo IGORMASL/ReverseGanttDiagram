@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { useState } from "react";
 import { useInvite } from "../api/invite";
 import Button from "./Button";
+import { getErrorMessage } from "../utils/errorHandling";
 
 interface JoinClassModalProps {
   isOpen: boolean;
@@ -49,11 +50,7 @@ const JoinClassModal: FC<JoinClassModalProps> = ({ isOpen, onClose }) => {
       window.location.href = "/classes";
     } catch (err: any) {
       console.error("Ошибка при присоединении к классу по приглашению:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Не удалось присоединиться к классу";
+      const message = getErrorMessage(err) || "Не удалось присоединиться к классу";
       alert(message);
     } finally {
       setLoading(false);

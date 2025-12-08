@@ -1,6 +1,7 @@
 import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { type ProjectStatus, ProjectStatusLabels, type Project } from "../api/projects";
+import { getErrorMessage } from "../utils/errorHandling";
 
 type ProjectModalMode = "create" | "edit";
 
@@ -83,11 +84,7 @@ const ProjectModal: FC<ProjectModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error("Ошибка при сохранении проекта:", err);
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data ??
-        err?.message ??
-        "Ошибка при сохранении проекта";
+      const message = getErrorMessage(err) || "Ошибка при сохранении проекта";
       alert(message);
     } finally {
       setLoading(false);
