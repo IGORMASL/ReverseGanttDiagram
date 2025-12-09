@@ -5,7 +5,7 @@ namespace GanttChartAPI.Repositories
 {
     public interface IProjectSolutionRepository
     {
-        Task CreateAsync(ProjectSolution projectSolution);
+        Task<ProjectSolution> CreateAsync(ProjectSolution projectSolution);
         Task<List<ProjectSolution>> GetUserClassSolutionsAsync(Guid userId, Guid classId);
         Task<List<ProjectSolution>> GetAllProjectSolutionsAsync(Guid projectId);
         Task<ProjectSolution?> GetByIdAsync(Guid solutionId);

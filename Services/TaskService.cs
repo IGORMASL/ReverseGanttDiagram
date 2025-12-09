@@ -41,8 +41,8 @@ namespace GanttChartAPI.Services
                 Id = Guid.NewGuid(),
                 Title = dto.Title,
                 Description = dto.Description,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
+                StartDate = dto.StartDate.Kind == DateTimeKind.Utc ? dto.StartDate : dto.StartDate.ToUniversalTime(),
+                EndDate = dto.EndDate.Kind == DateTimeKind.Utc ? dto.EndDate : dto.EndDate.ToUniversalTime(),
                 SolutionId = dto.SolutionId,
                 ParentTaskId = dto.ParentTaskId
             };
@@ -89,8 +89,8 @@ namespace GanttChartAPI.Services
             }
             projectTask.Title = dto.Title;
             projectTask.Description = dto.Description;
-            projectTask.StartDate = dto.StartDate;
-            projectTask.EndDate = dto.EndDate;
+            projectTask.StartDate = dto.StartDate.Kind == DateTimeKind.Utc ? dto.StartDate : dto.StartDate.ToUniversalTime();
+            projectTask.EndDate = dto.EndDate.Kind == DateTimeKind.Utc ? dto.EndDate : dto.EndDate.ToUniversalTime();
             await _tasks.ClearTaskDependenciesAsync(projectTask.Id);
             projectTask.Dependencies.Clear();
             foreach (var dependsOnId in dto.Dependencies)
@@ -178,7 +178,7 @@ namespace GanttChartAPI.Services
                 StartDate = task.StartDate,
                 EndDate = task.EndDate,
                 AssignedUsers = task.AssignedUsers
-                    .Select(a => new TeamMemberViewModel { Id = a.User.Id, FullName = a.User.FullName })
+                    .Select(a => new TeamMemberViewModel { Id = a.User.Id, FullName = a.User.FullName, Email = a.User.Email })
                     .ToList(),
                 Dependencies = task.Dependencies
                     .Select(d => d.DependsOnTaskId)

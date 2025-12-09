@@ -5,6 +5,7 @@
         public Guid Id { get; set; }
         public string Name { get; set; }
         public Guid ProjectId { get; set; }
+        public Guid SolutionId { get; set; }
         public List<TeamMemberViewModel> Members { get; set; }
     }
 }

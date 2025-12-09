@@ -11,10 +11,11 @@ namespace GanttChartAPI.Repositories
         {
             _context = context;
         }
-        public async Task CreateAsync(ProjectSolution projectSolution)
+        public async Task<ProjectSolution> CreateAsync(ProjectSolution projectSolution)
         {
             await _context.ProjectSolutions.AddAsync(projectSolution);
             await _context.SaveChangesAsync();
+            return projectSolution;
         }
         public async Task<ProjectSolution?> GetByIdAsync(Guid solutionId)
         {

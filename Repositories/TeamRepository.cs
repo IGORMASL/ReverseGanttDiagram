@@ -39,13 +39,15 @@ namespace GanttChartAPI.Repositories
         public async Task<List<Team>> GetProjectTeamsAsync(Guid projectId)
         {
             return await _context.Teams
+                .Include(t => t.Solution)
                 .Include(t => t.Members)
                     .ThenInclude(m => m.User)
                 .Where(t => t.ProjectId == projectId).ToListAsync();
         }
         public async Task<Team?> GetUserProjectTeamAsync(Guid projectId, Guid userId)
         {
-            return await Task.FromResult(_context.Teams.FirstOrDefault(t => t.ProjectId == projectId && 
+            return await Task.FromResult(_context.Teams
+                .FirstOrDefault(t => t.ProjectId == projectId && 
                 t.Members.Any(m => m.UserId == userId)));
         }
         public async Task AddTeamMemberAsync(TeamMember membership)

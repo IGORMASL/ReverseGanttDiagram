@@ -42,7 +42,7 @@ namespace GanttChartAPI.Services
                 Name = team.Name,
                 ProjectId = team.ProjectId
             });
-            await _teamSolutions.CreateAsync(new ProjectSolution
+            var teamSolution = await _teamSolutions.CreateAsync(new ProjectSolution
             {
                 Id = Guid.NewGuid(),
                 TeamId = newTeam.Id,
@@ -54,6 +54,7 @@ namespace GanttChartAPI.Services
                 Id = newTeam.Id,
                 Name = newTeam.Name,
                 ProjectId = newTeam.ProjectId,
+                SolutionId = teamSolution.Id,
                 Members = new List<TeamMemberViewModel>()
             };
         }
@@ -75,6 +76,7 @@ namespace GanttChartAPI.Services
                 Id = updatedTeam.Id,
                 Name = updatedTeam.Name,
                 ProjectId = updatedTeam.ProjectId,
+                SolutionId = existingTeam.Solution.Id,
                 Members = updatedTeam.Members.Select(m => new TeamMemberViewModel
                 {
                     Id = m.UserId,
@@ -109,6 +111,7 @@ namespace GanttChartAPI.Services
                 Id = updatedTeam.Id,
                 Name = updatedTeam.Name,
                 ProjectId = updatedTeam.ProjectId,
+                SolutionId = team.Solution.Id,
                 Members = updatedTeam.Members.Select(m => new TeamMemberViewModel
                 {
                     Id = m.UserId,
@@ -132,6 +135,7 @@ namespace GanttChartAPI.Services
                 Id = t.Id,
                 Name = t.Name,
                 ProjectId = t.ProjectId,
+                SolutionId = t.Solution.Id,
                 Members = t.Members.Select(m => new TeamMemberViewModel
                 {
                     Id = m.UserId,
@@ -157,6 +161,7 @@ namespace GanttChartAPI.Services
                 Id = team.Id,
                 Name = team.Name,
                 ProjectId = team.ProjectId,
+                SolutionId = team.Solution.Id,
                 Members = team.Members.Select(m => new TeamMemberViewModel
                 {
                     Id = m.UserId,
