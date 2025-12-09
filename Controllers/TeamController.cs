@@ -47,7 +47,7 @@ namespace GanttChartAPI.Controllers
             var teams = await _service.GetProjectTeamsAsync(userRole, userId, projectId);
             return Ok(teams);
         }
-        [HttpPut("add-members")]
+        [HttpPut("members")]
         [Authorize]
         public async Task<ActionResult> AddUserToTeam(Guid teamId, Guid userId)
         {
@@ -56,7 +56,7 @@ namespace GanttChartAPI.Controllers
             await _service.AddTeamMemberAsync(requesterRole, requesterId, userId, teamId);
             return Ok();
         }
-        [HttpPut("remove-members")]
+        [HttpDelete("members")]
         [Authorize]
         public async Task<ActionResult> RemoveUserFromTeam(Guid teamId, Guid memberId)
         {
