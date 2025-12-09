@@ -30,23 +30,25 @@ namespace GanttChartAPI.Repositories
             await dbContext.TeacherRelations.AddAsync(relation);
             await dbContext.SaveChangesAsync();
         }
-        public async Task RemoveStudentAsync(Guid userId, Guid classId)
+        public async Task RemoveStudentAsync(StudentRelation relation)
         {
-            var relation = await dbContext.StudentRelations.FirstOrDefaultAsync(sr => sr.UserId == userId && sr.ClassId == classId);
-            if (relation != null)
-            {
-                dbContext.StudentRelations.Remove(relation);
-                await dbContext.SaveChangesAsync();
-            }
+           dbContext.AssignedTasks.RemoveRange(dbContext.AssignedTasks
+               .Where(at => at.ProjectTask.Solution.Project.TopicClassId == relation.ClassId && at.UserId == relation.UserId));
+           dbContext.TeamMembers.RemoveRange(dbContext.TeamMembers
+               .Where(tm => tm.Team.Project.TopicClassId == relation.ClassId && tm.UserId == relation.UserId));
+            dbContext.StudentRelations.Remove(relation);
+           await dbContext.SaveChangesAsync();
+            
         }
-        public async Task RemoveTeacherAsync(Guid userId, Guid classId)
+        public async Task RemoveTeacherAsync(TeacherRelation relation)
         {
-            var relation = await dbContext.TeacherRelations.FirstOrDefaultAsync(tr => tr.UserId == userId && tr.ClassId == classId);
-            if (relation != null)
-            {
-                dbContext.TeacherRelations.Remove(relation);
-                await dbContext.SaveChangesAsync();
-            }
+            dbContext.AssignedTasks.RemoveRange(dbContext.AssignedTasks
+               .Where(at => at.ProjectTask.Solution.Project.TopicClassId == relation.ClassId && at.UserId == relation.UserId));
+            dbContext.TeamMembers.RemoveRange(dbContext.TeamMembers
+                .Where(tm => tm.Team.Project.TopicClassId == relation.ClassId && tm.UserId == relation.UserId));
+            dbContext.TeacherRelations.Remove(relation);
+            await dbContext.SaveChangesAsync();
+            
         }
         public async Task<List<TeacherRelation>> GetUserTeachersRelationsAsync(Guid userId)
         {

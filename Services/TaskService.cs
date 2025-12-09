@@ -69,7 +69,7 @@ namespace GanttChartAPI.Services
                 projectTask.AssignedUsers.Add(new AssignedTask
                 {
                     UserId = assignedUserId,
-                    TaskId = projectTask.Id
+                    TaskId = projectTask.Id,
                 });
             }
 
@@ -120,7 +120,7 @@ namespace GanttChartAPI.Services
                 projectTask.AssignedUsers.Add(new AssignedTask
                 {
                     UserId = assignedUserId,
-                    TaskId = projectTask.Id
+                    TaskId = projectTask.Id,
                 });
             }
             await _tasks.UpdateTaskAsync(projectTask);

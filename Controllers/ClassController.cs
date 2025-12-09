@@ -94,5 +94,14 @@ namespace GanttChartAPI.Controllers
             await _service.AddClassMemberByEmailAsync(requesterRole, requesterId, classId, memberEmail, memberClassRole);
             return Ok();
         }
+        [HttpDelete("members/{classId}")]
+        [Authorize]
+        public async Task<ActionResult> RemoveMember(Guid classId, Guid memberId)
+        {
+            var requesterId = _userContext.GetUserId();
+            var requesterRole = _userContext.GetUserRole();
+            await _service.RemoveClassMemberAsync(requesterRole, requesterId, classId, memberId);
+            return Ok();
+        }
     }
 }

@@ -14,13 +14,16 @@ namespace GanttChartAPI.Services
         private readonly ITopicClassRepository _classes;
         private readonly IClassRelationRepository _relations;
         private readonly IUserRepository _users;
+        private readonly ITeamRepository _teams;
         public TopicClassService(ITopicClassRepository classes,
             IClassRelationRepository relations,
-            IUserRepository users)
+            IUserRepository users,
+            ITeamRepository teams)
         {
             _classes = classes;
             _relations = relations;
             _users = users;
+            _teams = teams;
         }
         public async Task<List<ClassViewModel>> GetAllAsync()
         {
@@ -189,6 +192,27 @@ namespace GanttChartAPI.Services
             else
             {
                 throw new ArgumentException("Некорректная роль класса");
+            }
+        }
+
+        public async Task RemoveClassMemberAsync(string userRole, Guid userId, Guid classId, Guid memberId)
+        {
+            var topic = await _classes.GetByIdAsync(classId)
+                ?? throw new NotFoundException("Класс не найден");
+            var userClassRole = await _relations.GetUserClassRoleAsync(userId, classId);
+            if (userRole != "Admin" && userClassRole is not TeacherRelation)
+            {
+                throw new ForbiddenException("У вас нет прав для удаления участников из класса");
+            }
+            var memberRelation = await _relations.GetUserClassRoleAsync(memberId, classId)
+                ?? throw new NotFoundException("Пользователь не является участником класса");
+            if (memberRelation is StudentRelation studentRelation)
+            {
+                await _relations.RemoveStudentAsync(studentRelation);
+            }
+            else if (memberRelation is TeacherRelation teacherRelation)
+            {
+                await _relations.RemoveTeacherAsync(teacherRelation);
             }
         }
     }

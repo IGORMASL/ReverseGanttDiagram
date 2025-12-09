@@ -57,6 +57,8 @@ namespace GanttChartAPI.Repositories
         }
         public async Task RemoveTeamMemberAsync(TeamMember membership)
         {
+            _context.AssignedTasks.RemoveRange(_context.AssignedTasks
+                .Where(at => at.ProjectTask.Solution.TeamId == membership.TeamId && at.UserId == membership.UserId));
             _context.TeamMembers.Remove(membership);
             await _context.SaveChangesAsync();
         }
