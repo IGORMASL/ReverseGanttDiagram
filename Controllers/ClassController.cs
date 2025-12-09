@@ -77,6 +77,7 @@ namespace GanttChartAPI.Controllers
             return Ok(classes);
         }
         [HttpGet("members/{classId}")]
+        [Authorize]
         public async Task<ActionResult<List<ClassMemberViewModel>>> GetClassMembers(Guid classId)
         {
             var userRole = _userContext.GetUserRole();
@@ -84,6 +85,14 @@ namespace GanttChartAPI.Controllers
             var members = await _service.GetClassMembersAsync(userRole, userId, classId);
             return Ok(members);
         }
-
+        [HttpPut("members/{classId}")]
+        [Authorize]
+        public async Task<ActionResult> AddMemberByEmail(Guid classId, string memberEmail, string memberClassRole)
+        {
+            var requesterId = _userContext.GetUserId();
+            var requesterRole = _userContext.GetUserRole();
+            await _service.AddClassMemberByEmailAsync(requesterRole, requesterId, classId, memberEmail, memberClassRole);
+            return Ok();
+        }
     }
 }

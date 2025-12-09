@@ -12,5 +12,6 @@ namespace GanttChartAPI.Services
         Task DeleteAsync(Guid id);
         Task<List<UserClassViewModel>> GetUserClassesAsync(Guid userId);
         Task<List<ClassMemberViewModel>> GetClassMembersAsync(string userRole, Guid userId, Guid classId);
+        Task AddClassMemberByEmailAsync(string userRole, Guid userId,  Guid classId, string memberEmail, string memberClassRole);
     }
 }

@@ -13,10 +13,14 @@ namespace GanttChartAPI.Services
     {
         private readonly ITopicClassRepository _classes;
         private readonly IClassRelationRepository _relations;
-        public TopicClassService(ITopicClassRepository classes, IClassRelationRepository relations)
+        private readonly IUserRepository _users;
+        public TopicClassService(ITopicClassRepository classes,
+            IClassRelationRepository relations,
+            IUserRepository users)
         {
             _classes = classes;
             _relations = relations;
+            _users = users;
         }
         public async Task<List<ClassViewModel>> GetAllAsync()
         {
@@ -72,7 +76,7 @@ namespace GanttChartAPI.Services
         {
             var topic = await _classes.GetByIdAsync(classId)
                 ?? throw new NotFoundException("Класс не найден");
-            var userClassRole = await _relations.GetUserClassRoleAsync(userId, classId); 
+            var userClassRole = await _relations.GetUserClassRoleAsync(userId, classId);
             if (userRole != "Admin" && userClassRole is not TeacherRelation)
             {
                 throw new ForbiddenException("У вас нет прав для изменения класса");
@@ -145,6 +149,47 @@ namespace GanttChartAPI.Services
                 ClassRole = 0
             })).ToList();
             return members;
+        }
+        public async Task AddClassMemberByEmailAsync(string userRole, Guid userId, Guid classId, string memberEmail, string memberClassRole)
+        {
+            var topic = await _classes.GetByIdAsync(classId)
+                ?? throw new NotFoundException("Класс не найден");
+            var userClassRole = await _relations.GetUserClassRoleAsync(userId, classId);
+            if (userRole != "Admin" && userClassRole is not TeacherRelation)
+            {
+                throw new ForbiddenException("У вас нет прав для добавления участников в класс");
+            }
+            var userToAdd = await _users.GetByEmailAsync(memberEmail)
+                ?? throw new NotFoundException("Пользователь с таким email не найден");
+            var isUserInClass = await _relations.IsUserInClassAsync(userToAdd.Id, classId);
+            if (isUserInClass)
+            {
+                throw new ConflictException("Пользователь уже является участником класса");
+            }
+            if (memberClassRole == "Student")
+            {
+                var newRelation = new StudentRelation
+                {
+                    Id = Guid.NewGuid(),
+                    ClassId = classId,
+                    UserId = userToAdd.Id
+                };
+                await _relations.AddStudentAsync(newRelation);
+            }
+            else if (memberClassRole == "Teacher")
+            {
+                var newRelation = new TeacherRelation
+                {
+                    Id = Guid.NewGuid(),
+                    ClassId = classId,
+                    UserId = userToAdd.Id
+                };
+                await _relations.AddTeacherAsync(newRelation);
+            }
+            else
+            {
+                throw new ArgumentException("Некорректная роль класса");
+            }
         }
     }
 }
