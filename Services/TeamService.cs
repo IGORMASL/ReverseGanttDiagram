@@ -120,6 +120,40 @@ namespace GanttChartAPI.Services
                 }).ToList()
             };
         }
+        public async Task<TeamViewModel> RemoveTeamMemberAsync(string userRole, Guid userId, Guid memberId,  Guid teamId)
+        {
+            var team = await _teams.GetByIdAsync(teamId) ??
+                throw new NotFoundException("Такой команды не существует");
+            var project = await _projects.GetByIdAsync(team.ProjectId) ??
+                throw new NotFoundException("Проект не найден");
+            var topicClass = await _classes.GetByIdAsync(project.TopicClassId) ??
+               throw new NotFoundException("Класс проекта не найден");
+            var classRole = await _classRelations.GetUserClassRoleAsync(userId, topicClass.Id);
+            if (userRole != "Admin" && classRole is not TeacherRelation)
+                throw new ForbiddenException("Недостаточно прав для удаления участника команды в данном проекте");
+            var isMemberInTeam = team.Members.Any(m => m.UserId == memberId);
+            if (!isMemberInTeam)
+                throw new NotFoundException("Пользователь не является участником команды");
+            await _teams.RemoveTeamMemberAsync(new TeamMember
+            {
+               UserId = memberId,
+               TeamId = teamId
+            });
+            var updatedTeam = await _teams.GetByIdAsync(teamId);
+            return new TeamViewModel
+            {
+                Id = updatedTeam.Id,
+                Name = updatedTeam.Name,
+                ProjectId = updatedTeam.ProjectId,
+                SolutionId = team.Solution.Id,
+                Members = updatedTeam.Members.Select(m => new TeamMemberViewModel
+                {
+                    Id = m.UserId,
+                    FullName = m.User.FullName,
+                    Email = m.User.Email
+                }).ToList()
+            };
+        }
         public async Task<List<TeamViewModel>> GetProjectTeamsAsync(string userRole, Guid userId, Guid projectId)
         {
             var project = await _projects.GetByIdAsync(projectId) ??

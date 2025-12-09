@@ -55,5 +55,10 @@ namespace GanttChartAPI.Repositories
             await _context.TeamMembers.AddAsync(membership);
             await _context.SaveChangesAsync();
         }
+        public async Task RemoveTeamMemberAsync(TeamMember membership)
+        {
+            _context.TeamMembers.Remove(membership);
+            await _context.SaveChangesAsync();
+        }
     }
 }
