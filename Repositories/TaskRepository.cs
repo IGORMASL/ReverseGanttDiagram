@@ -34,10 +34,7 @@ namespace GanttChartAPI.Repositories
         {
             return await _context.ProjectTasks
                                  .Include(t => t.Solution)
-                                 .Include(t => t.PredecessorTasks)
-                                    .ThenInclude(d => d.PredecessorTask)
-                                 .Include(t => t.DependentTasks)
-                                    .ThenInclude(d => d.DependentTask)
+                                 .Include(t => t.Dependencies)
                                  .Include(t => t.AssignedUsers)
                                     .ThenInclude(au => au.User)
                                  .Where(t => t.Solution.TeamId == teamId)
