@@ -11,8 +11,6 @@ namespace GanttChartAPI.Models
         public Guid TeamId { get; set; }
         public Team Team { get; set; }
         public ProjectStatus Status { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
 
         [InverseProperty("Solution")]
         public List<ProjectTask> ProjectTasks { get; set; } = new List<ProjectTask>();

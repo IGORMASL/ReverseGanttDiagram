@@ -4,8 +4,8 @@ namespace GanttChartAPI.Repositories
 {
     public interface ITeamRepository
     {
-        Task<Team?> CreateAsync (Team team);
-        Task UpdateAsync (Team team);
+        Task<Team> CreateAsync (Team team);
+        Task<Team> UpdateAsync (Team team);
         Task DeleteAsync (Team team);
         Task<Team?> GetByIdAsync (Guid teamId);
         Task<List<Team>> GetProjectTeamsAsync (Guid projectId);

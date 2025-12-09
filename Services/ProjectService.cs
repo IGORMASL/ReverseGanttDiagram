@@ -24,7 +24,7 @@ namespace GanttChartAPI.Services
             _classRelations = classRelations;
             _solutions = solutions;
         }
-        public async Task<ProjectViewModel> CreateProjectAsync(string creatorRole, Guid creatorId, ProjectDto proj)
+        public async Task<ProjectViewModel> CreateProjectAsync(string creatorRole, Guid creatorId, CreateProjectDto proj)
         {
             var projectClass = await _classes.GetByIdAsync(proj.ClassId) ??
                 throw new NotFoundException("Класс проекта не найден");
@@ -54,7 +54,7 @@ namespace GanttChartAPI.Services
                 Status = project.Status
             };
         }
-        public async Task<ProjectViewModel> UpdateProjectAsync(string userRole, Guid userId, Guid projId, ProjectDto proj)
+        public async Task<ProjectViewModel> UpdateProjectAsync(string userRole, Guid userId, Guid projId, UpdateProjectDto proj)
         {
             
             var existingProject = await _projects.GetByIdAsync(projId);
@@ -62,9 +62,7 @@ namespace GanttChartAPI.Services
             {
                 throw new NotFoundException("Проект не найден");
             }
-            var projectClass = await _classes.GetByIdAsync(proj.ClassId) ??
-                throw new NotFoundException("Класс проекта не найден");
-            var classRole = await _classRelations.GetUserClassRoleAsync(userId, projectClass.Id);
+            var classRole = await _classRelations.GetUserClassRoleAsync(userId, existingProject.TopicClassId);
             if (userRole != "Admin" && classRole is not TeacherRelation)
             {
                 throw new ForbiddenException("Недостаточно прав для редактирования проекта в этом классе");
@@ -162,8 +160,8 @@ namespace GanttChartAPI.Services
                 SolutionId = sol.Id,
                 Title = sol.Project.Title,
                 Description = sol.Project.Description,
-                StartDate = sol.StartDate,
-                EndDate = sol.EndDate,
+                StartDate = sol.Project.StartDate,
+                EndDate = sol.Project.EndDate,
                 Status = sol.Status
             }).ToList();
         }
@@ -185,8 +183,8 @@ namespace GanttChartAPI.Services
                 TeamId = sol.TeamId,
                 TeamName = sol.Team.Name,
                 SolutionId = sol.Id,
-                StartDate = sol.StartDate,
-                EndDate = sol.EndDate,
+                StartDate = sol.Project.StartDate,
+                EndDate = sol.Project.EndDate,
                 Status = sol.Status
             }).ToList();
         }

@@ -20,13 +20,24 @@ namespace GanttChartAPI.Controllers
         }
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult> CreateTeam(TeamDto team)
+        public async Task<ActionResult<TeamViewModel>> CreateTeam(CreateTeamDto team)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();
-            await _service.CreateTeamAsync(userRole, userId, team);
-            return Ok();
+            var createdTeam = await _service.CreateTeamAsync(userRole, userId, team);
+            return CreatedAtAction(nameof(GetTeamById), new { teamId = createdTeam.Id }, createdTeam);
         }
+
+        [HttpPut("{teamId}")]
+        [Authorize]
+        public async Task<ActionResult<TeamViewModel>> UpdateTeam(Guid teamId, UpdateTeamDto team)
+        {
+            var userId = _userContext.GetUserId();
+            var userRole = _userContext.GetUserRole();
+            var updatedTeam = await _service.UpdateTeamAsync(userRole, userId, teamId, team);
+            return Ok(updatedTeam);
+        }
+
         [HttpGet("project")]
         [Authorize]
         public async Task<ActionResult<List<TeamViewModel>>> GetProjectTeams(Guid projectId)

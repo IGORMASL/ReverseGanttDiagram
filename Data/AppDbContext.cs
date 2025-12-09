@@ -102,28 +102,18 @@ namespace GanttChartAPI.Data
                 .WithMany(pt => pt.Subtasks)
                 .HasForeignKey(pt => pt.ParentTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<ProjectTask>()
-                .HasMany(pt => pt.PredecessorTasks)
-                .WithOne(td => td.DependentTask)
-                .HasForeignKey(td => td.DependentTaskId)
-                .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<ProjectTask>()
-                .HasMany(pt => pt.DependentTasks)
-                .WithOne(td => td.PredecessorTask)
-                .HasForeignKey(td => td.PredecessorTaskId)
-                .OnDelete(DeleteBehavior.Cascade);
             //TaskDependency
             modelBuilder.Entity<TaskDependency>()
-                .HasKey(td => new { td.DependentTaskId, td.PredecessorTaskId });
+                .HasKey(td => new { td.TaskId, td.DependsOnTaskId });
             modelBuilder.Entity<TaskDependency>()
-                .HasOne(td => td.DependentTask)
-                .WithMany(pt => pt.PredecessorTasks)
-                .HasForeignKey(td => td.DependentTaskId)
+                .HasOne(td => td.Task)
+                .WithMany(pt => pt.Dependencies)
+                .HasForeignKey(td => td.TaskId)
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<TaskDependency>()
-                .HasOne(td => td.PredecessorTask)
-                .WithMany(pt => pt.DependentTasks)
-                .HasForeignKey(td => td.PredecessorTaskId)
+                .HasOne(td => td.DependsOnTask)
+                .WithMany()
+                .HasForeignKey(td => td.DependsOnTaskId)
                 .OnDelete(DeleteBehavior.Cascade);
             //Project
             modelBuilder.Entity<WorkProject>()

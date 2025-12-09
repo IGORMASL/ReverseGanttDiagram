@@ -22,7 +22,7 @@ namespace GanttChartAPI.Controllers
         }
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult> CreateProject(ProjectDto proj)
+        public async Task<ActionResult> CreateProject(CreateProjectDto proj)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();
@@ -31,7 +31,7 @@ namespace GanttChartAPI.Controllers
         }
         [HttpPut]
         [Authorize]
-        public async Task<ActionResult> UpdateProject(Guid projectId, ProjectDto proj)
+        public async Task<ActionResult> UpdateProject(Guid projectId, UpdateProjectDto proj)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();
@@ -49,7 +49,7 @@ namespace GanttChartAPI.Controllers
         }
         [HttpGet("class/{classId}")]
         [Authorize]
-        public async Task<ActionResult> GetClassProjects(Guid classId)
+        public async Task<ActionResult<List<ProjectViewModel>>> GetClassProjects(Guid classId)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();
@@ -58,7 +58,7 @@ namespace GanttChartAPI.Controllers
         }
         [HttpGet("{projectId}")]
         [Authorize]
-        public async Task<ActionResult> GetProjectById(Guid projectId)
+        public async Task<ActionResult<ProjectViewModel>> GetProjectById(Guid projectId)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();

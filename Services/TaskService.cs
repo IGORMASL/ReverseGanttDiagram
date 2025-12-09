@@ -24,7 +24,7 @@ namespace GanttChartAPI.Services
             _teams = teams;
             _relations = relations;
         }
-        public async Task CreateTaskAsync(string userRole, Guid userId, TaskDto task)
+        public async Task<TaskViewModel> CreateTaskAsync(string userRole, Guid userId, TaskDto task)
         {
             var solution = await _solutions.GetByIdAsync(task.SolutionId)
                 ?? throw new NotFoundException("Решение не найдено");
@@ -43,9 +43,11 @@ namespace GanttChartAPI.Services
                 Description = task.Description,
                 StartDate = task.StartDate,
                 EndDate = task.EndDate,
-                SolutionId = task.SolutionId
+                SolutionId = task.SolutionId,
+                ParentTaskId = task.ParentTaskId
             };
             await _tasks.CreateTaskAsync(projectTask);
+            return MapToView(projectTask);
         }
         public async Task UpdateTaskAsync(string userRole, Guid userId, Guid taskId, TaskDto task)
         {
@@ -83,7 +85,7 @@ namespace GanttChartAPI.Services
             }
             await _tasks.DeleteTaskAsync(projectTask);
         }
-        public async Task<TaskTreeViewModel?> GetTaskByIdAsync(string userRole, Guid userId, Guid taskId)
+        public async Task<TaskViewModel?> GetTaskByIdAsync(string userRole, Guid userId, Guid taskId)
         {
             var projectTask = await _tasks.GetTaskByIdAsync(taskId)
                 ?? throw new NotFoundException("Задача не найдена");
@@ -97,7 +99,7 @@ namespace GanttChartAPI.Services
             {
                 throw new ForbiddenException("У вас нет доступа к этому решению");
             }
-            return new TaskTreeViewModel
+            return new TaskViewModel
             {
                 Id = projectTask.Id,
                 Title = projectTask.Title,
@@ -106,7 +108,7 @@ namespace GanttChartAPI.Services
                 EndDate = projectTask.EndDate,
             };
         }
-        public async Task<List<TaskTreeViewModel>> GetTeamTasksAsync(string userRole, Guid userId, Guid teamId)
+        public async Task<List<TaskViewModel>> GetTeamTasksAsync(string userRole, Guid userId, Guid teamId)
         {
             var team = await _teams.GetByIdAsync(teamId)
                 ?? throw new NotFoundException("Команда не найдена");
@@ -119,12 +121,11 @@ namespace GanttChartAPI.Services
                 throw new ForbiddenException("У вас нет доступа к этой команде");
             }
             var tasks = await _tasks.GetTeamTasksAsync(teamId);
-            var tree = BuildTaskTree(tasks);
-            return tree.Select(MapToTree).ToList();
+            return tasks.Select(MapToView).ToList();
         }
-        public TaskTreeViewModel MapToTree(ProjectTask task)
+        public TaskViewModel MapToView(ProjectTask task)
         {
-            return new TaskTreeViewModel
+            return new TaskViewModel
             {
                 Id = task.Id,
                 Title = task.Title,
@@ -132,36 +133,12 @@ namespace GanttChartAPI.Services
                 StartDate = task.StartDate,
                 EndDate = task.EndDate,
                 AssignedUsers = task.AssignedUsers
-                    .Select(a => new UserViewModel { Id = a.User.Id, FullName = a.User.FullName })
+                    .Select(a => new TeamMemberViewModel { Id = a.User.Id, FullName = a.User.FullName })
                     .ToList(),
-                Dependencies = task.PredecessorTasks
-                    .Select(d => d.PredecessorTaskId)
+                Dependencies = task.Dependencies
+                    .Select(d => d.DependsOnTaskId)
                     .ToList(),
-                Subtasks = task.Subtasks
-                    .Select(MapToTree)
-                    .ToList()
             };
-        }
-        public List<ProjectTask> BuildTaskTree(List<ProjectTask> tasks)
-        {
-            foreach (var t in tasks)
-                t.Subtasks = new List<ProjectTask>();
-
-            var lookup = tasks.ToDictionary(t => t.Id, t => t);
-            List<ProjectTask> roots = new();
-
-            foreach (var task in tasks)
-            {
-                if (task.ParentTaskId == null)
-                {
-                    roots.Add(task);
-                }
-                else if (lookup.ContainsKey(task.ParentTaskId.Value))
-                {
-                    lookup[task.ParentTaskId.Value].Subtasks.Add(task);
-                }
-            }
-            return roots;
         }
     }
 }

@@ -27,7 +27,7 @@ namespace GanttChartAPI.Services
             _classes = classes;
             _classRelations = relations;
         }
-        public async Task CreateTeamAsync(string creatorRole, Guid creatorId, TeamDto team)
+        public async Task<TeamViewModel> CreateTeamAsync(string creatorRole, Guid creatorId, CreateTeamDto team)
         {
             var project = await _projects.GetByIdAsync(team.ProjectId) ??
                 throw new NotFoundException("Проект не найден");
@@ -47,12 +47,43 @@ namespace GanttChartAPI.Services
                 Id = Guid.NewGuid(),
                 TeamId = newTeam.Id,
                 ProjectId = newTeam.ProjectId,
-                StartDate = project.StartDate,
-                EndDate = project.EndDate,
                 Status = project.Status
             });
+            return new TeamViewModel
+            {
+                Id = newTeam.Id,
+                Name = newTeam.Name,
+                ProjectId = newTeam.ProjectId,
+                Members = new List<TeamMemberViewModel>()
+            };
         }
-        public async Task AddTeamMemberAsync(string userRole, Guid userId, Guid memberId, Guid teamId)
+        public async Task<TeamViewModel> UpdateTeamAsync(string userRole, Guid userId, Guid teamId, UpdateTeamDto team)
+        {
+            var existingTeam = await _teams.GetByIdAsync(teamId) ??
+                throw new NotFoundException("Такой команды не существует");
+            var project = await _projects.GetByIdAsync(existingTeam.ProjectId) ??
+                throw new NotFoundException("Проект не найден");
+            var topicClass = await _classes.GetByIdAsync(project.TopicClassId) ??
+               throw new NotFoundException("Класс проекта не найден");
+            var classRole = await _classRelations.GetUserClassRoleAsync(userId, topicClass.Id);
+            if (userRole != "Admin" && classRole is not TeacherRelation)
+                throw new ForbiddenException("Недостаточно прав для редактирования команды в данном проекте");
+            existingTeam.Name = team.Name;
+            var updatedTeam = await _teams.UpdateAsync(existingTeam);
+            return new TeamViewModel
+            {
+                Id = updatedTeam.Id,
+                Name = updatedTeam.Name,
+                ProjectId = updatedTeam.ProjectId,
+                Members = updatedTeam.Members.Select(m => new TeamMemberViewModel
+                {
+                    Id = m.UserId,
+                    FullName = m.User.FullName,
+                    Email = m.User.Email
+                }).ToList()
+            };
+        }
+        public async Task<TeamViewModel> AddTeamMemberAsync(string userRole, Guid userId, Guid memberId, Guid teamId)
         {
             var team = await _teams.GetByIdAsync(teamId) ??
                 throw new NotFoundException("Такой команды не существует");
@@ -72,6 +103,19 @@ namespace GanttChartAPI.Services
                 UserId = memberId,
                 TeamId = teamId
             });
+            var updatedTeam = await _teams.GetByIdAsync(teamId);
+            return new TeamViewModel
+            {
+                Id = updatedTeam.Id,
+                Name = updatedTeam.Name,
+                ProjectId = updatedTeam.ProjectId,
+                Members = updatedTeam.Members.Select(m => new TeamMemberViewModel
+                {
+                    Id = m.UserId,
+                    FullName = m.User.FullName,
+                    Email = m.User.Email
+                }).ToList()
+            };
         }
         public async Task<List<TeamViewModel>> GetProjectTeamsAsync(string userRole, Guid userId, Guid projectId)
         {

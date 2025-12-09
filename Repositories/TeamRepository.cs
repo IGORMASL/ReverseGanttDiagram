@@ -11,16 +11,17 @@ namespace GanttChartAPI.Repositories
         {
             _context = context;
         }
-        public async Task<Team?> CreateAsync(Team team)
+        public async Task<Team> CreateAsync(Team team)
         {
             await _context.Teams.AddAsync(team);
             await _context.SaveChangesAsync();
-            return team;
+            return await GetByIdAsync(team.Id);
         }
-        public async Task UpdateAsync(Team team)
+        public async Task<Team> UpdateAsync(Team team)
         {
             _context.Teams.Update(team);
             await _context.SaveChangesAsync();
+            return await GetByIdAsync(team.Id);
         }
         public async Task DeleteAsync(Team team)
         {
