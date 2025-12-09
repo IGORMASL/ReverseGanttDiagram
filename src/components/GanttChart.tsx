@@ -14,6 +14,7 @@ type GanttChartProps = {
   placeholder?: string;
   onCreateTask?: () => void;
   onSelectTask?: (task: TaskTree) => void;
+  onCreateChild?: (parent: TaskTree) => void;
   projectStartDate?: string;
   projectEndDate?: string;
   selectedTaskId?: string;
@@ -90,6 +91,7 @@ export default function GanttChart({
   placeholder = "Задач пока нет",
   onCreateTask,
   onSelectTask,
+  onCreateChild,
   projectStartDate,
   projectEndDate,
   selectedTaskId,
@@ -148,7 +150,9 @@ export default function GanttChart({
     if (projectStartDate && projectEndDate) {
       const projectStart = startOfDay(new Date(projectStartDate));
       const projectEnd = startOfDay(new Date(projectEndDate));
-      const days = Math.max(1, diffInDays(projectStart, projectEnd));
+      // Для диапазона проекта считаем дни включительно, как для баров:
+      // 01–01 = 1 день, 01–02 = 2 дня, 01–30 = 30 дней.
+      const days = Math.max(1, durationInDays(projectStart, projectEnd));
       return { minDate: projectStart, maxDate: projectEnd, totalDays: days };
     }
 
@@ -236,24 +240,6 @@ export default function GanttChart({
           {error ? (
             <span className="text-sm text-red-500">Ошибка: {error}</span>
           ) : null}
-          {onCreateTask && (
-            <button
-              type="button"
-              onClick={onCreateTask}
-              className="text-sm px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-900"
-            >
-              Добавить задачу
-            </button>
-          )}
-          {onReload && (
-            <button
-              type="button"
-              onClick={onReload}
-              className="text-sm px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50"
-            >
-              Обновить
-            </button>
-          )}
         </div>
       </div>
 
@@ -262,7 +248,7 @@ export default function GanttChart({
       ) : flatTasks.length === 0 ? (
         <p className="text-gray-500 text-sm">{placeholder}</p>
       ) : (
-        <div className="overflow-x-hidden overflow-y-auto border border-gray-100 rounded-xl min-h-[360px] pb-4">
+        <div className="overflow-x-hidden overflow-y-auto border border-gray-100 rounded-xl h-[600px] pb-4">
           {/* Заголовок грид + шкала */}
           <div
             className="grid border-b border-gray-100 bg-white"
@@ -344,10 +330,14 @@ export default function GanttChart({
                         <button
                           type="button"
                           onClick={() => toggleCollapse(task.id)}
-                          className="w-4 h-4 flex items-center justify-center text-gray-600 hover:text-gray-900"
+                          className="w-4 h-4 flex items-center justify-center"
                           aria-label="toggle-subtasks"
                         >
-                          {collapsed.has(task.id) ? "▶" : "▼"}
+                          <span
+                            className={`inline-block w-0 h-0 border-y-[4px] border-y-transparent border-l-[6px] border-l-black transition-transform ${
+                              collapsed.has(task.id) ? "rotate-0" : "rotate-90"
+                            }`}
+                          />
                         </button>
                       ) : (
                         <span className="w-4 h-4" />
@@ -365,6 +355,18 @@ export default function GanttChart({
                       >
                         {TaskTypeLabels[task.type]}
                       </span>
+                      {onCreateChild && (task.type === 0 || task.type === 1) && (
+                        <button
+                          type="button"
+                          className="ml-1 text-[11px] px-1.5 py-0.5 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCreateChild(task);
+                          }}
+                        >
+                          +
+                        </button>
+                      )}
                     </div>
                     <div className="text-[11px] text-gray-500 ml-2 space-y-0.5">
                       <p>

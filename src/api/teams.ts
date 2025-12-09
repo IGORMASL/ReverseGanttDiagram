@@ -7,6 +7,7 @@ export type Team = {
   id: string;
   name: string;
   projectId: string;
+  solutionId?: string; // ID решения команды (для создания задач)
   members?: TeamMember[]; // Участники команды (если есть)
 };
 
@@ -20,6 +21,7 @@ export type TeamWithMembers = {
   id: string;
   name: string;
   projectId: string;
+  solutionId?: string; // ID решения команды (для создания задач)
   members: TeamMember[];
 };
 
@@ -46,6 +48,7 @@ export async function getProjectTeams(projectId: string): Promise<Team[]> {
     id: string;
     name: string;
     projectId: string;
+    solutionId: string;
     members: {
       id: string; // userId
       fullName: string;
@@ -60,6 +63,7 @@ export async function getProjectTeams(projectId: string): Promise<Team[]> {
     id: team.id,
     name: team.name,
     projectId: team.projectId,
+    solutionId: team.solutionId,
     members: team.members.map((m) => ({
       userId: m.id,
       fullName: m.fullName,
@@ -77,6 +81,7 @@ export async function getTeamById(teamId: string): Promise<TeamWithMembers> {
     id: string;
     name: string;
     projectId: string;
+    solutionId: string;
     members: {
       id: string; // userId
       fullName: string;
@@ -88,6 +93,7 @@ export async function getTeamById(teamId: string): Promise<TeamWithMembers> {
     id: res.data.id,
     name: res.data.name,
     projectId: res.data.projectId,
+    solutionId: res.data.solutionId,
     members: res.data.members.map((m) => ({
       userId: m.id,
       fullName: m.fullName,
@@ -105,3 +111,14 @@ export async function addTeamMember(teamId: string, userId: string): Promise<voi
   });
 }
 
+/**
+ * DELETE /api/team/members?teamId=...&memberId=... — удаление участника из команды.
+ */
+export async function deleteTeamMember(
+  teamId: string,
+  memberId: string
+): Promise<void> {
+  await api.delete("/team/members", {
+    params: { teamId, memberId },
+  });
+}

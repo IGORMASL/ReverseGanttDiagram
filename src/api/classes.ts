@@ -188,10 +188,24 @@ export async function addMemberToClass(
   classId: string,
   payload: { email: string; role: ClassRole }
 ): Promise<void> {
-  await api.post("/class/member", {
-    classId,
-    email: payload.email,
-    role: payload.role,
+  const memberClassRole = payload.role === 1 ? "Teacher" : "Student";
+
+  await api.put(`/class/members/${classId}`, null, {
+    params: {
+      memberEmail: payload.email,
+      memberClassRole,
+    },
   });
 }
 
+/**
+ * DELETE /api/class/members/{classId}?memberId=... — удалить участника из класса.
+ */
+export async function deleteMemberFromClass(
+  classId: string,
+  memberId: string
+): Promise<void> {
+  await api.delete(`/class/members/${classId}`, {
+    params: { memberId },
+  });
+}

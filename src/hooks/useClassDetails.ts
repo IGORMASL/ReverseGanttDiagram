@@ -198,6 +198,7 @@ export function useClassDetails({ classId, user }: UseClassDetailsOptions) {
 
   return {
     details,
+    setDetails,
     projects,
     loading,
     error,

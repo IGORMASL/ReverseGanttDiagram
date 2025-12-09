@@ -14,6 +14,7 @@ import {
   getProjectTeams,
   createTeam,
   addTeamMember,
+  deleteTeamMember,
   getTeamById,
   type Team,
   type TeamWithMembers,
@@ -82,6 +83,7 @@ export function useProject({ projectId, classId, user }: UseProjectOptions) {
                 id: team.id,
                 name: team.name,
                 projectId: team.projectId,
+                solutionId: team.solutionId,
                 members: team.members ?? [],
               });
             });
@@ -132,6 +134,7 @@ export function useProject({ projectId, classId, user }: UseProjectOptions) {
           id: team.id,
           name: team.name,
           projectId: team.projectId,
+          solutionId: team.solutionId,
           members: team.members ?? [],
         });
       });
@@ -164,6 +167,17 @@ export function useProject({ projectId, classId, user }: UseProjectOptions) {
       return true;
     } catch (err) {
       console.error("Ошибка при добавлении участника:", err);
+      throw new Error(getErrorMessage(err));
+    }
+  };
+
+  const handleDeleteMemberFromTeam = async (teamId: string, memberId: string) => {
+    try {
+      await deleteTeamMember(teamId, memberId);
+      await refreshTeams();
+      return true;
+    } catch (err) {
+      console.error("Ошибка при удалении участника из команды:", err);
       throw new Error(getErrorMessage(err));
     }
   };
@@ -220,6 +234,7 @@ export function useProject({ projectId, classId, user }: UseProjectOptions) {
     myTeam,
     handleCreateTeam,
     handleAddMemberToTeam,
+    handleDeleteMemberFromTeam,
     handleUpdateProject,
     handleDeleteProject,
     refreshTeams,

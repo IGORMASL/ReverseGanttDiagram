@@ -7,6 +7,7 @@ import CreateInviteModal from "../components/CreateInviteModal";
 import ProjectModal from "../components/ProjectModal";
 import CreateClassModal from "../components/CreateClassModal";
 import { ProjectStatusLabels } from "../api/projects";
+import { addMemberToClass, getClassMembers, deleteMemberFromClass, type ClassRole, type ClassDetails } from "../api/classes";
 import { useAuth } from "../hooks/useAuth";
 import { useClassDetails } from "../hooks/useClassDetails";
 import { isSystemAdmin } from "../utils/permissions";
@@ -20,6 +21,7 @@ export default function ClassDetailsPage() {
 
   const {
     details,
+    setDetails,
     projects,
     loading,
     error,
@@ -33,7 +35,7 @@ export default function ClassDetailsPage() {
 
   // UI состояние
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<0 | 1>(0);
+  const [inviteRole, setInviteRole] = useState<ClassRole>(0);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [membersFilter, setMembersFilter] = useState<MembersFilter>("all");
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -73,23 +75,23 @@ export default function ClassDetailsPage() {
     if (!classId || !inviteEmail.trim()) return;
 
     setInviteLoading(true);
-    // TODO: когда будет готов бэкенд, здесь нужно вызвать addMemberToClass
-    setDetails((prev) => {
-      if (!prev) return prev;
-      const newMember = {
-        id: Math.random().toString(36).slice(2),
-        fullName: inviteEmail.trim(),
+    try {
+      await addMemberToClass(classId, {
         email: inviteEmail.trim(),
-        roleInClass: inviteRole,
-      };
-      return {
-        ...prev,
-        members: [...prev.members, newMember],
-      };
-    });
-    setInviteEmail("");
-    alert("Участник добавлен локально (без запроса к серверу).");
-    setInviteLoading(false);
+        role: inviteRole,
+      });
+
+      const members = await getClassMembers(classId);
+      setDetails((prev: ClassDetails | null) => (prev ? { ...prev, members } : prev));
+
+      setInviteEmail("");
+      alert("Участник добавлен в класс");
+    } catch (err: any) {
+      console.error("Ошибка добавления участника:", err);
+      alert(err.message || "Не удалось добавить участника");
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const onCreateProject = async (data: {
@@ -104,6 +106,22 @@ export default function ClassDetailsPage() {
       setProjectModalOpen(false);
     } catch (err: any) {
       alert(err.message || "Не удалось создать проект");
+    }
+  };
+
+  const onDeleteMember = async (memberId: string) => {
+    if (!classId) return;
+    const confirmed = window.confirm("Удалить участника из класса? Действие необратимо.");
+    if (!confirmed) return;
+
+    try {
+      await deleteMemberFromClass(classId, memberId);
+      const members = await getClassMembers(classId);
+      setDetails((prev: ClassDetails | null) => (prev ? { ...prev, members } : prev));
+      alert("Участник удалён из класса");
+    } catch (err: any) {
+      console.error("Ошибка удаления участника:", err);
+      alert(err.message || "Не удалось удалить участника");
     }
   };
 
@@ -401,15 +419,11 @@ export default function ClassDetailsPage() {
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] md:text-xs bg-gray-100 text-gray-700">
                           {member.roleInClass === 1 ? "Учитель" : "Студент"}
                         </span>
-                        {canManage && (
+                        {canManage && member.id && (
                           <button
                             type="button"
                             className="text-[11px] md:text-xs px-3 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100"
-                            onClick={() =>
-                              alert(
-                                "Удаление участника можно реализовать отдельным API-вызовом позже."
-                              )
-                            }
+                            onClick={() => onDeleteMember(member.id!)}
                           >
                             Удалить
                           </button>
