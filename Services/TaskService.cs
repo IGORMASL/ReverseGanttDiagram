@@ -24,9 +24,9 @@ namespace GanttChartAPI.Services
             _teams = teams;
             _relations = relations;
         }
-        public async Task<TaskViewModel> CreateTaskAsync(string userRole, Guid userId, TaskDto task)
+        public async Task<TaskViewModel> CreateTaskAsync(string userRole, Guid userId, CreateTaskDto dto)
         {
-            var solution = await _solutions.GetByIdAsync(task.SolutionId)
+            var solution = await _solutions.GetByIdAsync(dto.SolutionId)
                 ?? throw new NotFoundException("Решение не найдено");
             var team = await _teams.GetByIdAsync(solution.TeamId)
                 ?? throw new NotFoundException("Команда не найдена");
@@ -39,19 +39,45 @@ namespace GanttChartAPI.Services
             var projectTask = new ProjectTask
             {
                 Id = Guid.NewGuid(),
-                Title = task.Title,
-                Description = task.Description,
-                StartDate = task.StartDate,
-                EndDate = task.EndDate,
-                SolutionId = task.SolutionId,
-                ParentTaskId = task.ParentTaskId
+                Title = dto.Title,
+                Description = dto.Description,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                SolutionId = dto.SolutionId,
+                ParentTaskId = dto.ParentTaskId
             };
+            foreach (var dependsOnId in dto.Dependencies)
+            {
+                var dependsOnTask = await _tasks.GetTaskByIdAsync(dependsOnId) 
+                    ?? throw new NotFoundException($"Задача-зависимость с Id {dependsOnId} не найдена");
+                if(dependsOnTask.SolutionId != solution.Id)
+                    throw new ForbiddenException("Задача-зависимость принадлежит другому решению");
+                projectTask.Dependencies.Add(new TaskDependency
+                {
+                    TaskId = projectTask.Id,
+                    DependsOnTaskId = dependsOnId
+                });
+            }
+            foreach (var assignedUserId in dto.AssignedUsers)
+            {
+                var isUserInTeamMembers = team.Members.Any(m => m.UserId == assignedUserId);
+                if (!isUserInTeamMembers)
+                    throw new ForbiddenException("Назначенный пользователь не является участником команды");
+                projectTask.AssignedUsers.Add(new AssignedTask
+                {
+                    UserId = assignedUserId,
+                    TaskId = projectTask.Id
+                });
+            }
+
             await _tasks.CreateTaskAsync(projectTask);
             return MapToView(projectTask);
         }
-        public async Task UpdateTaskAsync(string userRole, Guid userId, Guid taskId, TaskDto task)
+        public async Task<TaskViewModel> UpdateTaskAsync(string userRole, Guid userId, Guid taskId, UpdateTaskDto dto)
         {
-            var solution = await _solutions.GetByIdAsync(task.SolutionId)
+            var projectTask = await _tasks.GetTaskByIdAsync(taskId)
+                ?? throw new NotFoundException("Задача не найдена");
+            var solution = await _solutions.GetByIdAsync(projectTask.SolutionId)
                 ?? throw new NotFoundException("Решение не найдено");
             var team = await _teams.GetByIdAsync(solution.TeamId)
                 ?? throw new NotFoundException("Команда не найдена");
@@ -61,13 +87,39 @@ namespace GanttChartAPI.Services
             {
                 throw new ForbiddenException("У вас нет доступа к этому решению");
             }
-            var projectTask = await _tasks.GetTaskByIdAsync(taskId)
-                ?? throw new NotFoundException("Задача не найдена");
-            projectTask.Title = task.Title;
-            projectTask.Description = task.Description;
-            projectTask.StartDate = task.StartDate;
-            projectTask.EndDate = task.EndDate;
+            projectTask.Title = dto.Title;
+            projectTask.Description = dto.Description;
+            projectTask.StartDate = dto.StartDate;
+            projectTask.EndDate = dto.EndDate;
+            await _tasks.ClearTaskDependenciesAsync(projectTask.Id);
+            projectTask.Dependencies.Clear();
+            foreach (var dependsOnId in dto.Dependencies)
+            {
+                var dependsOnTask = await _tasks.GetTaskByIdAsync(dependsOnId)
+                    ?? throw new NotFoundException($"Задача-зависимость с Id {dependsOnId} не найдена");
+                if (dependsOnTask.SolutionId != solution.Id)
+                    throw new ForbiddenException("Задача-зависимость принадлежит другому решению");
+                projectTask.Dependencies.Add(new TaskDependency
+                {
+                    TaskId = projectTask.Id,
+                    DependsOnTaskId = dependsOnId
+                });
+            }
+            await _tasks.ClearTaskAssignedUsersAsync(projectTask.Id);
+            projectTask.AssignedUsers.Clear();
+            foreach (var assignedUserId in dto.AssignedUsers)
+            {
+                var isUserInTeamMembers = team.Members.Any(m => m.UserId == assignedUserId);
+                if (!isUserInTeamMembers)
+                    throw new ForbiddenException("Назначенный пользователь не является участником команды");
+                projectTask.AssignedUsers.Add(new AssignedTask
+                {
+                    UserId = assignedUserId,
+                    TaskId = projectTask.Id
+                });
+            }
             await _tasks.UpdateTaskAsync(projectTask);
+            return MapToView(projectTask);
         }
         public async Task DeleteTaskAsync(string userRole, Guid userId, Guid taskId)
         {
@@ -97,16 +149,9 @@ namespace GanttChartAPI.Services
             var relation = await _relations.GetUserClassRoleAsync(userId, team.Project.TopicClassId);
             if (userRole != "Admin" && !isUserInTeam && relation is not TeacherRelation)
             {
-                throw new ForbiddenException("У вас нет доступа к этому решению");
+                throw new ForbiddenException("У вас нет доступа к этой задаче");
             }
-            return new TaskViewModel
-            {
-                Id = projectTask.Id,
-                Title = projectTask.Title,
-                Description = projectTask.Description,
-                StartDate = projectTask.StartDate,
-                EndDate = projectTask.EndDate,
-            };
+            return (MapToView(projectTask));
         }
         public async Task<List<TaskViewModel>> GetTeamTasksAsync(string userRole, Guid userId, Guid teamId)
         {
@@ -118,7 +163,7 @@ namespace GanttChartAPI.Services
             var relation = await _relations.GetUserClassRoleAsync(userId, team.Project.TopicClassId);
             if (userRole != "Admin" && !isUserInTeam && relation is not TeacherRelation)
             {
-                throw new ForbiddenException("У вас нет доступа к этой команде");
+                throw new ForbiddenException("У вас нет доступа к задачам этой команды");
             }
             var tasks = await _tasks.GetTeamTasksAsync(teamId);
             return tasks.Select(MapToView).ToList();

@@ -1,11 +1,9 @@
-﻿using GanttChartAPI.Models;
-using GanttChartAPI.Models.Enums;
+﻿using GanttChartAPI.Models.Enums;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GanttChartAPI.DTOs
 {
-    public class TaskDto
+    public class UpdateTaskDto
     {
         [Required]
         public string Title { get; set; }
@@ -17,6 +15,7 @@ namespace GanttChartAPI.DTOs
         public ProjectTaskType Type { get; set; }
         public ProjectTaskStatus Status { get; set; }
         public Guid? ParentTaskId { get; set; }
-        public Guid SolutionId { get; set; }
+        public List<Guid> Dependencies { get; set; } = new List<Guid>();
+        public List<Guid> AssignedUsers { get; set; } = new List<Guid>();
     }
 }

@@ -22,22 +22,22 @@ namespace GanttChartAPI.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult> CreateTask([FromBody] TaskDto taskDto)
+        public async Task<ActionResult<TaskViewModel>> CreateTask([FromBody] CreateTaskDto taskDto)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();
-            await _service.CreateTaskAsync(userRole, userId, taskDto);
-            return Ok();
+            var createdTask = await _service.CreateTaskAsync(userRole, userId, taskDto);
+            return CreatedAtAction(nameof(GetTaskById), new { taskId = createdTask.Id }, createdTask);
         }
 
         [HttpPut("{taskId}")]
         [Authorize]
-        public async Task<ActionResult> UpdateTask([FromRoute] Guid taskId, [FromBody] TaskDto taskDto)
+        public async Task<ActionResult<TaskViewModel>> UpdateTask([FromRoute] Guid taskId, [FromBody] UpdateTaskDto taskDto)
         {
             var userId = _userContext.GetUserId();
             var userRole = _userContext.GetUserRole();
-            await _service.UpdateTaskAsync(userRole, userId, taskId, taskDto);
-            return Ok();
+            var updatedTask = await _service.UpdateTaskAsync(userRole, userId, taskId, taskDto);
+            return Ok(updatedTask);
         }
 
         [HttpDelete("{taskId}")]
@@ -48,6 +48,15 @@ namespace GanttChartAPI.Controllers
             var userRole = _userContext.GetUserRole();
             await _service.DeleteTaskAsync(userRole, userId, taskId);
             return Ok();
+        }
+        [HttpGet("{taskId}")]
+        [Authorize]
+        public async Task<ActionResult<TaskViewModel>> GetTaskById([FromRoute] Guid taskId)
+        {
+            var userId = _userContext.GetUserId();
+            var userRole = _userContext.GetUserRole();
+            var task = await _service.GetTaskByIdAsync(userRole, userId, taskId);
+            return Ok(task);
         }
 
         [HttpGet("team/{teamId}")]
