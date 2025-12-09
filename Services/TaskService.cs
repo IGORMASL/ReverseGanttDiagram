@@ -1,6 +1,7 @@
 ﻿using GanttChartAPI.DTOs;
 using GanttChartAPI.Instruments;
 using GanttChartAPI.Models;
+using GanttChartAPI.Models.Enums;
 using GanttChartAPI.Repositories;
 using GanttChartAPI.ViewModels;
 using System.Runtime.InteropServices;
@@ -43,6 +44,8 @@ namespace GanttChartAPI.Services
                 Description = dto.Description,
                 StartDate = dto.StartDate.Kind == DateTimeKind.Utc ? dto.StartDate : dto.StartDate.ToUniversalTime(),
                 EndDate = dto.EndDate.Kind == DateTimeKind.Utc ? dto.EndDate : dto.EndDate.ToUniversalTime(),
+                Type = dto.Type,
+                Status = dto.Status,
                 SolutionId = dto.SolutionId,
                 ParentTaskId = dto.ParentTaskId
             };
@@ -91,6 +94,8 @@ namespace GanttChartAPI.Services
             projectTask.Description = dto.Description;
             projectTask.StartDate = dto.StartDate.Kind == DateTimeKind.Utc ? dto.StartDate : dto.StartDate.ToUniversalTime();
             projectTask.EndDate = dto.EndDate.Kind == DateTimeKind.Utc ? dto.EndDate : dto.EndDate.ToUniversalTime();
+            projectTask.Type = dto.Type;
+            projectTask.Status = dto.Status;
             await _tasks.ClearTaskDependenciesAsync(projectTask.Id);
             projectTask.Dependencies.Clear();
             foreach (var dependsOnId in dto.Dependencies)
@@ -177,6 +182,9 @@ namespace GanttChartAPI.Services
                 Description = task.Description,
                 StartDate = task.StartDate,
                 EndDate = task.EndDate,
+                Type = task.Type,
+                Status = task.Status,
+                ParentTaskId = task.ParentTaskId,
                 AssignedUsers = task.AssignedUsers
                     .Select(a => new TeamMemberViewModel { Id = a.User.Id, FullName = a.User.FullName, Email = a.User.Email })
                     .ToList(),

@@ -12,7 +12,7 @@ namespace GanttChartAPI.ViewModels
         public DateTime EndDate { get; set; }
         public ProjectTaskType Type { get; set; }
         public ProjectTaskStatus Status { get; set; }
-        public Guid? parentId { get; set; }
+        public Guid? ParentTaskId { get; set; }
         public List<TeamMemberViewModel> AssignedUsers { get; set; }
         public List<Guid> Dependencies { get; set; }
     }
