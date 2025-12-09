@@ -131,14 +131,9 @@ namespace GanttChartAPI.Services
             var classRole = await _classRelations.GetUserClassRoleAsync(userId, topicClass.Id);
             if (userRole != "Admin" && classRole is not TeacherRelation)
                 throw new ForbiddenException("Недостаточно прав для удаления участника команды в данном проекте");
-            var isMemberInTeam = team.Members.Any(m => m.UserId == memberId);
-            if (!isMemberInTeam)
+            var teamMember = await _teams.GetTeamMemberAsync(teamId, memberId) ??
                 throw new NotFoundException("Пользователь не является участником команды");
-            await _teams.RemoveTeamMemberAsync(new TeamMember
-            {
-               UserId = memberId,
-               TeamId = teamId
-            });
+            await _teams.RemoveTeamMemberAsync(teamMember);
             var updatedTeam = await _teams.GetByIdAsync(teamId);
             return new TeamViewModel
             {

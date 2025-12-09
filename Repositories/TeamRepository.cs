@@ -55,6 +55,11 @@ namespace GanttChartAPI.Repositories
             await _context.TeamMembers.AddAsync(membership);
             await _context.SaveChangesAsync();
         }
+        public async Task<TeamMember?> GetTeamMemberAsync(Guid userId, Guid teamId)
+        {
+            return await _context.TeamMembers
+                .FirstOrDefaultAsync(tm => tm.UserId == userId && tm.TeamId == teamId);
+        }
         public async Task RemoveTeamMemberAsync(TeamMember membership)
         {
             _context.AssignedTasks.RemoveRange(_context.AssignedTasks
