@@ -31,6 +31,20 @@ export const PROJECT_STATUS_LABELS: Record<number, string> = {
   2: "Завершено",
 };
 
+// Статусы задач
+export const TASK_STATUS_LABELS: Record<number, string> = {
+  0: "Запланировано",
+  1: "В работе",
+  2: "Сделано",
+};
+
+// Типы задач
+export const TASK_TYPE_LABELS: Record<number, string> = {
+  0: "Результат",
+  1: "Задача",
+  2: "Подзадача",
+};
+
 // Метки ролей в классе
 export const CLASS_ROLE_LABELS: Record<number, string> = {
   0: "Студент",

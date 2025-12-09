@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import HeaderClasses from "../components/HeaderClasses";
 import Button from "../components/Button";
@@ -8,6 +8,15 @@ import { ProjectStatusLabels } from "../api/projects";
 import { useAuth } from "../hooks/useAuth";
 import { useProject } from "../hooks/useProject";
 import { isSystemAdmin } from "../utils/permissions";
+import GanttChart from "../components/GanttChart";
+import {
+  TaskStatusLabels,
+  TaskTypeLabels,
+  type TaskAssignee,
+  type TaskTree,
+  type TaskType,
+  type TaskStatus,
+} from "../api/tasks";
 
 export default function ProjectPage() {
   const { projectId, classId } = useParams<{ projectId: string; classId: string }>();
@@ -37,8 +46,414 @@ export default function ProjectPage() {
   const [showMyTeam, setShowMyTeam] = useState(false);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [localTasks, setLocalTasks] = useState<Record<string, TaskTree[]>>({});
+  const [taskModalMode, setTaskModalMode] = useState<"create" | "edit">("create");
+  const [editingTask, setEditingTask] = useState<TaskTree | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskTree | null>(null);
+
+  type TaskPanelMode = "idle" | "view" | "edit";
+  const [panelMode, setPanelMode] = useState<TaskPanelMode>("idle");
+
+  // Локальное состояние формы задачи (ранее было в TaskModal)
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [type, setType] = useState<TaskType>(0);
+  const [status, setStatus] = useState<TaskStatus>(0);
+  const [selectedDependencies, setSelectedDependencies] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [parentTaskId, setParentTaskId] = useState<string | null>(null);
+  const [savingTask, setSavingTask] = useState(false);
 
   const isAdmin = isSystemAdmin(user);
+
+  // Автовыбор первой команды для просмотра задач (для учителя/админа)
+  useEffect(() => {
+    if (canManage && teams.length > 0) {
+      const stillExists = selectedTeamId && teams.some((t) => t.id === selectedTeamId);
+      if (!stillExists) {
+        setSelectedTeamId(teams[0].id);
+      }
+    }
+  }, [canManage, teams, selectedTeamId]);
+
+  const targetTeamId = canManage ? selectedTeamId ?? undefined : myTeam?.id;
+  const teamTasks = useMemo(() => {
+    if (!targetTeamId) return [];
+    return localTasks[targetTeamId] ?? [];
+  }, [localTasks, targetTeamId]);
+
+  const tasksLoading = false;
+  const tasksError: string | null = null;
+
+  // Вспомогательные структуры для формы задач (аналогично TaskModal)
+  const flattenTasks = (tasks: TaskTree[]): TaskTree[] => {
+    const result: TaskTree[] = [];
+    const stack = [...tasks];
+    while (stack.length) {
+      const current = stack.pop()!;
+      result.push(current);
+      if (current.subtasks && current.subtasks.length > 0) {
+        stack.push(...current.subtasks);
+      }
+    }
+    return result;
+  };
+
+  const flatTasksForForm = useMemo(() => flattenTasks(teamTasks), [teamTasks]);
+
+  // Сортировка задач и подзадач по дате начала, чтобы порядок на диаграмме
+  // и в списке был стабильным и логичным (вариант B: всегда по startDate).
+  const sortTasksByStart = (list: TaskTree[]): TaskTree[] => {
+    return [...list]
+      .map((t) => ({
+        ...t,
+        subtasks: sortTasksByStart(t.subtasks ?? []),
+      }))
+      .sort((a, b) => {
+        const aTime = new Date(a.startDate).getTime();
+        const bTime = new Date(b.startDate).getTime();
+        return aTime - bTime;
+      });
+  };
+
+  const dependencyOptions = useMemo(() => {
+    const selfId = editingTask?.id;
+    const currentStart = startDate ? new Date(startDate) : null;
+
+    return flatTasksForForm.filter((t) => {
+      if (t.id === selfId) return false;
+      if (t.type !== type) return false;
+      if (!currentStart) return true;
+      const dependencyEnd = new Date(t.endDate);
+      return dependencyEnd <= currentStart;
+    });
+  }, [flatTasksForForm, editingTask?.id, type, startDate]);
+
+  const parentOptions = useMemo(() => {
+    const selfId = editingTask?.id;
+    return flatTasksForForm.filter((t) => {
+      if (t.id === selfId) return false;
+
+      // type === 1 ("задача") — обязательно должен быть родитель типа "результат" (0)
+      if (type === 1) {
+        return t.type === 0;
+      }
+
+      // type === 2 ("подзадача") — родителем может быть только задача (type === 1)
+      if (type === 2) {
+        return t.type === 1;
+      }
+
+      // для результата (type === 0) родителя быть не должно
+      return false;
+    });
+  }, [flatTasksForForm, editingTask?.id, type]);
+
+  // Гарантируем, что при создании/редактировании задачи типа 1 или 2
+  // в state всегда актуальный parentTaskId, соответствующий доступным parentOptions.
+  useEffect(() => {
+    if (type !== 1 && type !== 2) {
+      // Для результата родитель не нужен
+      if (parentTaskId !== null) {
+        setParentTaskId(null);
+      }
+      return;
+    }
+
+    if (parentOptions.length === 0) {
+      // Нет доступных родителей — явно держим parentTaskId пустым
+      if (parentTaskId !== null) {
+        setParentTaskId(null);
+      }
+      return;
+    }
+
+    const existsInOptions = parentTaskId
+      ? parentOptions.some((t) => t.id === parentTaskId)
+      : false;
+
+    // Если родитель ещё не выбран или текущий id выпал из списка опций,
+    // автоматически выбираем первого доступного родителя.
+    if (!existsInOptions) {
+      setParentTaskId(parentOptions[0].id);
+    }
+  }, [type, parentOptions, parentTaskId]);
+
+  const toggleSelection = (list: string[], value: string) =>
+    list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+
+  const deleteTask = (teamId: string, taskId: string) => {
+    setLocalTasks((prev) => {
+      const current = prev[teamId] ?? [];
+      const removeRecursive = (list: TaskTree[]): TaskTree[] =>
+        list
+          .filter((t) => t.id !== taskId)
+          .map((t) => ({ ...t, subtasks: removeRecursive(t.subtasks ?? []) }));
+      return { ...prev, [teamId]: removeRecursive(current) };
+    });
+  };
+
+  const teamNameForChart = canManage
+    ? teams.find((t) => t.id === selectedTeamId)?.name
+    : myTeam?.name;
+
+  const openCreateTask = () => {
+    if (!targetTeamId) {
+      alert("Сначала выберите команду");
+      return;
+    }
+    setTaskModalMode("create");
+    setEditingTask(null);
+    setSelectedTask(null);
+
+    const today = new Date().toISOString().slice(0, 10);
+    setTitle("");
+    setDescription("");
+    setStartDate(today);
+    setEndDate(today);
+    setType(0);
+    setStatus(0);
+    setSelectedDependencies([]);
+    setSelectedAssignees([]);
+    setParentTaskId(null);
+
+    setPanelMode("edit");
+  };
+
+  const openEditTask = (task: TaskTree) => {
+    setEditingTask(task);
+    setTaskModalMode("edit");
+    setSelectedTask(task);
+
+    setTitle(task.title);
+    setDescription(task.description ?? "");
+    setStartDate(task.startDate.slice(0, 10));
+    setEndDate(task.endDate.slice(0, 10));
+    setType(task.type as TaskType);
+    setStatus(task.status as TaskStatus);
+    setSelectedDependencies(task.dependencies ?? []);
+    setSelectedAssignees(task.assignedUsers?.map((u) => u.id) ?? []);
+    setParentTaskId(task.parentTaskId ?? null);
+
+    setPanelMode("edit");
+  };
+
+  const currentMembers: TaskAssignee[] = useMemo(() => {
+    if (canManage && selectedTeamId) {
+      const teamWithMembers = teamsWithMembers.get(selectedTeamId);
+      return teamWithMembers?.members?.map((m) => ({
+        id: m.userId,
+        fullName: m.fullName,
+        email: m.email,
+      })) ?? [];
+    }
+    if (!canManage && myTeam) {
+      return myTeam.members.map((m) => ({
+        id: m.userId,
+        fullName: m.fullName,
+        email: m.email,
+      }));
+    }
+    return [];
+  }, [canManage, selectedTeamId, teamsWithMembers, myTeam]);
+
+  const onSubmitTask = async (data: {
+    title: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    type: number;
+    status: number;
+    dependencies: string[];
+    assignedUserIds: string[];
+    parentTaskId?: string | null;
+  }): Promise<TaskTree | undefined> => {
+    if (!targetTeamId) return;
+
+    const insertTask = (list: TaskTree[], task: TaskTree, parentId?: string | null): TaskTree[] => {
+      if (!parentId) return [...list, task];
+      return list.map((t) => {
+        if (t.id === parentId) {
+          return {
+            ...t,
+            subtasks: [...(t.subtasks ?? []), task],
+          };
+        }
+        return { ...t, subtasks: insertTask(t.subtasks ?? [], task, parentId) };
+      });
+    };
+
+    const updateTaskTree = (
+      list: TaskTree[],
+      task: TaskTree,
+      parentId?: string | null
+    ): TaskTree[] => {
+      // Полностью убираем старую версию задачи по id из всего дерева
+      const removeFromTree = (nodes: TaskTree[]): TaskTree[] =>
+        nodes
+          .filter((n) => n.id !== task.id)
+          .map((n) => ({ ...n, subtasks: removeFromTree(n.subtasks ?? []) }));
+
+      const cleaned = removeFromTree(list);
+      // Вставляем обновлённую задачу в нового родителя (или в корень)
+      return insertTask(cleaned, task, parentId);
+    };
+
+    if (taskModalMode === "create") {
+      const newTask: TaskTree = {
+        id: crypto.randomUUID(),
+        title: data.title,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        type: data.type as TaskType,
+        status: data.status as TaskStatus,
+        assignedUsers: currentMembers.filter((m) => data.assignedUserIds.includes(m.id)),
+        dependencies: data.dependencies,
+        subtasks: [],
+        parentTaskId: data.parentTaskId ?? null,
+      };
+      setLocalTasks((prev) => {
+        const current = prev[targetTeamId] ?? [];
+        const withInserted = insertTask(current, newTask, data.parentTaskId);
+        return {
+          ...prev,
+          [targetTeamId]: sortTasksByStart(withInserted),
+        };
+      });
+      return newTask;
+    } else if (editingTask) {
+      const updated: TaskTree = {
+        ...editingTask,
+        title: data.title,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        type: data.type as TaskType,
+        status: data.status as TaskStatus,
+        dependencies: data.dependencies,
+        assignedUsers: currentMembers.filter((m) => data.assignedUserIds.includes(m.id)),
+        parentTaskId: data.parentTaskId ?? null,
+      };
+      setLocalTasks((prev) => {
+        const current = prev[targetTeamId] ?? [];
+        const updatedTree = updateTaskTree(current, updated, data.parentTaskId ?? null);
+        return {
+          ...prev,
+          [targetTeamId]: sortTasksByStart(updatedTree),
+        };
+      });
+      return updated;
+    }
+    return undefined;
+  };
+
+  const onDeleteTask = async (task: TaskTree) => {
+    if (!targetTeamId) return;
+    if (!confirm(`Удалить задачу "${task.title}"?`)) return;
+    deleteTask(targetTeamId, task.id);
+    setSelectedTask((prev) => (prev && prev.id === task.id ? null : prev));
+    if (selectedTask && selectedTask.id === task.id) {
+      setPanelMode("idle");
+    }
+  };
+
+  const handleSelectTask = (task: TaskTree) => {
+    setSelectedTask(task);
+    setEditingTask(task);
+    setPanelMode("view");
+  };
+
+  const handleTaskSave = async () => {
+    if (!title.trim()) {
+      alert("Название обязательно");
+      return;
+    }
+    if (!startDate || !endDate) {
+      alert("Укажите даты");
+      return;
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      alert("Дата начала не может быть позже окончания");
+      return;
+    }
+
+    // Ограничение задач датами проекта
+    const projectStart = new Date(project!.startDate);
+    const projectEnd = new Date(project!.endDate);
+    const taskStart = new Date(startDate);
+    const taskEnd = new Date(endDate);
+
+    if (taskStart < projectStart || taskEnd > projectEnd) {
+      const projectStartStr = project!.startDate.slice(0, 10);
+      const projectEndStr = project!.endDate.slice(0, 10);
+      alert(
+        `Даты задачи должны находиться в пределах дат проекта: с ${projectStartStr} по ${projectEndStr}.`
+      );
+      return;
+    }
+
+    // Валидация родителя в зависимости от типа
+    if (type === 1 || type === 2) {
+      if (!parentTaskId) {
+        if (type === 1) {
+          alert(
+            "Для задачи типа \"задача\" необходимо выбрать родительскую задачу типа \"результат\". Сначала создайте задачу-результат."
+          );
+        } else if (type === 2) {
+          alert(
+            "Для задачи типа \"подзадача\" необходимо выбрать родительскую задачу типа \"задача\". Сначала создайте обычную задачу."
+          );
+        } else {
+          alert("Для задачи этого типа необходимо выбрать родительскую задачу");
+        }
+        return;
+      }
+    }
+
+    setSavingTask(true);
+    try {
+      const result = await onSubmitTask({
+        title: title.trim(),
+        description,
+        startDate,
+        endDate,
+        type,
+        status,
+        dependencies: selectedDependencies,
+        assignedUserIds: selectedAssignees,
+        parentTaskId,
+      });
+
+      if (taskModalMode === "edit" && result) {
+        // переключаемся обратно в режим просмотра и показываем обновлённую задачу
+        setSelectedTask(result);
+        setEditingTask(result);
+        setPanelMode("view");
+      } else {
+        // создание новой задачи — возвращаемся в idle, задача появится в списке/диаграмме
+        setPanelMode("idle");
+        setSelectedTask(null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось сохранить задачу");
+    } finally {
+      setSavingTask(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (taskModalMode === "edit" && selectedTask) {
+      setPanelMode("view");
+    } else {
+      setPanelMode("idle");
+      setSelectedTask(null);
+    }
+  };
 
   const onCreateTeam = async () => {
     if (!newTeamName.trim()) return;
@@ -335,11 +750,586 @@ export default function ProjectPage() {
               </p>
             )}
 
-            {/* TODO: Список задач студента */}
-            <div className="mt-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4">Мои задачи</h3>
-              <p className="text-gray-500 text-sm">Список задач будет реализован позже.</p>
+            <div className="mt-8 grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
+              <GanttChart
+                tasks={teamTasks}
+                loading={tasksLoading}
+                error={tasksError}
+                onReload={undefined}
+                title="Диаграмма задач команды"
+                placeholder="У вашей команды пока нет задач."
+                onCreateTask={openCreateTask}
+                onSelectTask={handleSelectTask}
+                projectStartDate={project.startDate}
+                projectEndDate={project.endDate}
+                selectedTaskId={selectedTask?.id}
+              />
+
+              {/* Правая панель информации и формы задачи */}
+              <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 min-h-[260px]">
+                {panelMode === "idle" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-500">
+                      Выберите задачу в списке или на диаграмме, чтобы увидеть детали.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openCreateTask}
+                      className="px-3 py-1.5 text-xs rounded-lg bg-gray-900 text-white hover:bg-black"
+                    >
+                      Добавить задачу
+                    </button>
+                  </div>
+                )}
+
+                {panelMode === "view" && selectedTask && (
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 break-words">
+                          {selectedTask.title}
+                        </h4>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span
+                            className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                              selectedTask.type === 0
+                                ? "text-violet-600 border-violet-100 bg-violet-50"
+                                : selectedTask.type === 1
+                                ? "text-sky-600 border-sky-100 bg-sky-50"
+                                : "text-amber-600 border-amber-100 bg-amber-50"
+                            }`}
+                          >
+                            {TaskTypeLabels[selectedTask.type]}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {TaskStatusLabels[selectedTask.status]}
+                          </span>
+                        </div>
+                        {selectedTask.description && (
+                          <p className="mt-2 text-sm text-gray-600 whitespace-pre-line break-words">
+                            {selectedTask.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <p>
+                        <span className="font-medium">Даты: </span>
+                        {selectedTask.startDate.slice(0, 10)} — {selectedTask.endDate.slice(0, 10)}
+                      </p>
+                      {selectedTask.assignedUsers?.length > 0 && (
+                        <p>
+                          <span className="font-medium">Исполнители: </span>
+                          {selectedTask.assignedUsers.map((u) => u.fullName).join(", ")}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => openEditTask(selectedTask)}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-gray-900 text-white hover:bg-black"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteTask(selectedTask)}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {panelMode === "edit" && (
+                  <div className="space-y-3">
+                    <h4 className="text-lg font-semibold text-gray-900 break-words">
+                      {taskModalMode === "create" ? "Добавить задачу" : "Изменить задачу"}
+                    </h4>
+
+                    <input
+                      type="text"
+                      className="w-full mb-3 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                      placeholder="Название"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+
+                    <textarea
+                      className="w-full mb-3 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-sm"
+                      rows={3}
+                      placeholder="Описание"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Дата начала</label>
+                        <input
+                          type="date"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Дата окончания</label>
+                        <input
+                          type="date"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Тип</label>
+                        <select
+                          value={type}
+                          onChange={(e) => setType(Number(e.target.value) as TaskType)}
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                        >
+                          <option value={0}>{TaskTypeLabels[0]}</option>
+                          <option value={1}>{TaskTypeLabels[1]}</option>
+                          <option value={2}>{TaskTypeLabels[2]}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Статус</label>
+                        <select
+                          value={status}
+                          onChange={(e) => setStatus(Number(e.target.value) as TaskStatus)}
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                        >
+                          <option value={0}>{TaskStatusLabels[0]}</option>
+                          <option value={1}>{TaskStatusLabels[1]}</option>
+                          <option value={2}>{TaskStatusLabels[2]}</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {(type === 1 || type === 2) && (
+                      <div className="mb-4">
+                        <label className="block text-sm text-gray-700 mb-1">Родительская задача</label>
+                        <select
+                          value={parentTaskId ?? ""}
+                          onChange={(e) => setParentTaskId(e.target.value || null)}
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                        >
+                          {parentOptions.map((task) => (
+                            <option key={task.id} value={task.id}>
+                              {task.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="mb-4">
+                      <label className="block text-sm text-gray-700 mb-2">Можно начинать после</label>
+                      <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-lg divide-y">
+                        {dependencyOptions.length === 0 ? (
+                          <p className="text-xs text-gray-500 px-3 py-2">Пока нет других задач.</p>
+                        ) : (
+                          dependencyOptions.map((task) => (
+                            <label
+                              key={task.id}
+                              className="flex items-center gap-2 px-3 py-2 text-sm"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedDependencies.includes(task.id)}
+                                onChange={() =>
+                                  setSelectedDependencies((prev) =>
+                                    toggleSelection(prev, task.id)
+                                  )
+                                }
+                              />
+                              <span>{task.title}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mb-5">
+                      <label className="block text-sm text-gray-700 mb-2">
+                        Исполнители (участники команды)
+                      </label>
+                      <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-lg divide-y">
+                        {currentMembers.length === 0 ? (
+                          <p className="text-xs text-gray-500 px-3 py-2">
+                            В команде пока нет участников.
+                          </p>
+                        ) : (
+                          currentMembers.map((member) => (
+                            <label
+                              key={member.id}
+                              className="flex items-center gap-2 px-3 py-2 text-sm"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedAssignees.includes(member.id)}
+                                onChange={() =>
+                                  setSelectedAssignees((prev) =>
+                                    toggleSelection(prev, member.id)
+                                  )
+                                }
+                              />
+                              <span>{member.fullName}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition text-xs"
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleTaskSave}
+                        disabled={savingTask}
+                        className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition text-xs disabled:opacity-50"
+                      >
+                        {savingTask
+                          ? "Сохраняем..."
+                          : taskModalMode === "create"
+                          ? "Создать"
+                          : "Сохранить"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </aside>
             </div>
+          </section>
+        )}
+
+        {/* Диаграмма задач для админа/учителя */}
+        {canManage && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="text-2xl font-semibold text-gray-900">Диаграмма задач</h3>
+                <p className="text-sm text-gray-500">
+                  Выберите команду, чтобы посмотреть её задачи.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedTeamId ?? ""}
+                  onChange={(e) => setSelectedTeamId(e.target.value || null)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[200px]"
+                  disabled={teams.length === 0}
+                >
+                  <option value="">Выберите команду</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  className="w-auto px-5 py-2 text-sm"
+                  disabled={!selectedTeamId}
+                  onClick={openCreateTask}
+                >
+                  Добавить задачу
+                </Button>
+              </div>
+            </div>
+
+            {teams.length === 0 ? (
+              <p className="text-gray-500 text-sm">Сначала создайте команду, чтобы видеть задачи.</p>
+            ) : (
+              <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
+                <GanttChart
+                  tasks={teamTasks}
+                  loading={tasksLoading}
+                  error={tasksError}
+                  onReload={undefined}
+                  title={
+                    teamNameForChart
+                      ? `Задачи команды «${teamNameForChart}»`
+                      : "Диаграмма задач команды"
+                  }
+                  placeholder="Для выбранной команды пока нет задач."
+                  onCreateTask={openCreateTask}
+                  onSelectTask={handleSelectTask}
+                  projectStartDate={project.startDate}
+                  projectEndDate={project.endDate}
+                  selectedTaskId={selectedTask?.id}
+                />
+
+                {/* Правая панель информации и формы задачи */}
+                <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 min-h-[260px]">
+                  {panelMode === "idle" && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-500">
+                        Выберите задачу в списке или на диаграмме, чтобы увидеть детали.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openCreateTask}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-gray-900 text-white hover:bg-black"
+                      >
+                        Добавить задачу
+                      </button>
+                    </div>
+                  )}
+
+                  {panelMode === "view" && selectedTask && (
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 break-words">
+                            {selectedTask.title}
+                          </h4>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span
+                              className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                                selectedTask.type === 0
+                                  ? "text-violet-600 border-violet-100 bg-violet-50"
+                                  : selectedTask.type === 1
+                                  ? "text-sky-600 border-sky-100 bg-sky-50"
+                                  : "text-amber-600 border-amber-100 bg-amber-50"
+                              }`}
+                            >
+                              {TaskTypeLabels[selectedTask.type]}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {TaskStatusLabels[selectedTask.status]}
+                            </span>
+                          </div>
+                          {selectedTask.description && (
+                            <p className="mt-2 text-sm text-gray-600 whitespace-pre-line break-words">
+                              {selectedTask.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 space-y-1">
+                        <p>
+                          <span className="font-medium">Статус: </span>
+                          {TaskStatusLabels[selectedTask.status]}
+                          <span className="mx-1">·</span>
+                          <span className="font-medium">Дедлайн: </span>
+                          {selectedTask.startDate.slice(0, 10)} — {selectedTask.endDate.slice(0, 10)}
+                        </p>
+                        {selectedTask.assignedUsers?.length > 0 && (
+                          <p>
+                            <span className="font-medium">Исполнители: </span>
+                            {selectedTask.assignedUsers.map((u) => u.fullName).join(", ")}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditTask(selectedTask)}
+                          className="px-3 py-1.5 text-xs rounded-lg bg-gray-900 text-white hover:bg-black"
+                        >
+                          Редактировать
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteTask(selectedTask)}
+                          className="px-3 py-1.5 text-xs rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {panelMode === "edit" && (
+                    <div className="space-y-3">
+                      <h4 className="text-lg font-semibold text-gray-900 break-words">
+                        {taskModalMode === "create" ? "Добавить задачу" : "Изменить задачу"}
+                      </h4>
+
+                      <input
+                        type="text"
+                        className="w-full mb-3 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                        placeholder="Название"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+
+                      <textarea
+                        className="w-full mb-3 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none text-sm"
+                        rows={3}
+                        placeholder="Описание"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                      />
+
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="block text-sm text-gray-700 mb-1">Дата начала</label>
+                          <input
+                            type="date"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-700 mb-1">Дата окончания</label>
+                          <input
+                            type="date"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                          <label className="block text-sm text-gray-700 mb-1">Тип</label>
+                          <select
+                            value={type}
+                            onChange={(e) => setType(Number(e.target.value) as TaskType)}
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                          >
+                            <option value={0}>{TaskTypeLabels[0]}</option>
+                            <option value={1}>{TaskTypeLabels[1]}</option>
+                            <option value={2}>{TaskTypeLabels[2]}</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-700 mb-1">Статус</label>
+                          <select
+                            value={status}
+                            onChange={(e) => setStatus(Number(e.target.value) as TaskStatus)}
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                          >
+                            <option value={0}>{TaskStatusLabels[0]}</option>
+                            <option value={1}>{TaskStatusLabels[1]}</option>
+                            <option value={2}>{TaskStatusLabels[2]}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {(type === 1 || type === 2) && (
+                        <div className="mb-4">
+                          <label className="block text-sm text-gray-700 mb-1">Родительская задача</label>
+                          <select
+                            value={parentTaskId ?? ""}
+                            onChange={(e) => setParentTaskId(e.target.value || null)}
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                          >
+                            <option value="">Без родителя</option>
+                            {parentOptions.map((task) => (
+                              <option key={task.id} value={task.id}>
+                                {task.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      <div className="mb-4">
+                        <label className="block text-sm text-gray-700 mb-2">Можно начинать после</label>
+                        <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-lg divide-y">
+                          {dependencyOptions.length === 0 ? (
+                            <p className="text-xs text-gray-500 px-3 py-2">Пока нет других задач.</p>
+                          ) : (
+                            dependencyOptions.map((task) => (
+                              <label
+                                key={task.id}
+                                className="flex items-center gap-2 px-3 py-2 text-sm"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedDependencies.includes(task.id)}
+                                  onChange={() =>
+                                    setSelectedDependencies((prev) =>
+                                      toggleSelection(prev, task.id)
+                                    )
+                                  }
+                                />
+                                <span>{task.title}</span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mb-5">
+                        <label className="block text-sm text-gray-700 mb-2">
+                          Исполнители (участники команды)
+                        </label>
+                        <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-lg divide-y">
+                          {currentMembers.length === 0 ? (
+                            <p className="text-xs text-gray-500 px-3 py-2">
+                              В команде пока нет участников.
+                            </p>
+                          ) : (
+                            currentMembers.map((member) => (
+                              <label
+                                key={member.id}
+                                className="flex items-center gap-2 px-3 py-2 text-sm"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedAssignees.includes(member.id)}
+                                  onChange={() =>
+                                    setSelectedAssignees((prev) =>
+                                      toggleSelection(prev, member.id)
+                                    )
+                                  }
+                                />
+                                <span>{member.fullName}</span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition text-xs"
+                        >
+                          Отмена
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleTaskSave}
+                          disabled={savingTask}
+                          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition text-xs disabled:opacity-50"
+                        >
+                          {savingTask
+                            ? "Сохраняем..."
+                            : taskModalMode === "create"
+                            ? "Создать"
+                            : "Сохранить"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </aside>
+              </div>
+            )}
           </section>
         )}
       </main>
