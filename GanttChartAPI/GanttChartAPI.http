@@ -1,0 +1,6 @@
+@GanttChartAPI_HostAddress = http://localhost:5195
+
+GET {{GanttChartAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
