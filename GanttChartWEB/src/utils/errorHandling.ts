@@ -57,6 +57,7 @@ export function getErrorMessage(error: unknown): string {
 /**
  * Проверяет, является ли ошибка ошибкой доступа (403)
  */
+/*
 export function isForbiddenError(error: unknown): boolean {
   if ("response" in error) {
     const axiosError = error as AxiosError;
@@ -64,10 +65,11 @@ export function isForbiddenError(error: unknown): boolean {
   }
   return false;
 }
-
+*/
 /**
  * Проверяет, является ли ошибка ошибкой валидации (400)
  */
+/*
 export function isValidationError(error: unknown): boolean {
   if ("response" in error) {
     const axiosError = error as AxiosError;
@@ -75,4 +77,4 @@ export function isValidationError(error: unknown): boolean {
   }
   return false;
 }
-
+*/

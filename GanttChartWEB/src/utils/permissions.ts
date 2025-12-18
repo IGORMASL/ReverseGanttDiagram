@@ -2,7 +2,8 @@
  * Утилиты для проверки прав доступа
  */
 
-import type { CurrentUser, ClassRole } from "../types";
+import type { CurrentUser } from "../types";
+//import type { ClassRole } from "../types";
 import type { ClassMember } from "../api/classes";
 
 /**

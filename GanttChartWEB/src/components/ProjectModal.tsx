@@ -26,7 +26,7 @@ const ProjectModal: FC<ProjectModalProps> = ({
   isOpen,
   onClose,
   mode,
-  classId,
+  //classId,
   initialProject,
   onSubmit,
 }) => {

@@ -225,6 +225,7 @@ export default function ProjectPage() {
   const toggleSelection = (list: string[], value: string) =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
+/*
   const deleteTask = (teamId: string, taskId: string) => {
     setLocalTasks((prev) => {
       const current = prev[teamId] ?? [];
@@ -235,7 +236,7 @@ export default function ProjectPage() {
       return { ...prev, [teamId]: removeRecursive(current) };
     });
   };
-
+*/
   const teamNameForChart = canManage
     ? teams.find((t) => t.id === selectedTeamId)?.name
     : myTeam?.name;

@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: gantt-postgres
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - gantt-network
+
+  backend:
+    build:
+      context: ./GanttChartAPI
+      dockerfile: Dockerfile
+    container_name: gantt-backend
+    restart: always
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING}
+
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_1}
+      Cors__AllowedOrigins__1: ${CORS_ORIGIN_2}
+
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+    ports:
+      - "5050:8080"
+    networks:
+      - gantt-network
+      
+  frontend:
+    build:
+      context: ./GanttChartWEB
+      dockerfile: Dockerfile
+    container_name: gantt-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - gantt-network
+
+
+volumes:
+  postgres_data:
+
+
+networks:
+  gantt-network:
+    driver: bridge
