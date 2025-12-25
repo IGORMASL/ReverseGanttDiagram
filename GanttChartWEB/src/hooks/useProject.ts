@@ -195,8 +195,8 @@ export function useProject({ projectId, classId, user }: UseProjectOptions) {
       await updateProject(projectId, {
         title: data.title,
         description: data.description,
-        startDate: data.startDate,
-        endDate: data.endDate,
+        startDate: new Date(data.startDate).toISOString(),
+        endDate: new Date(data.endDate).toISOString(),
         status: data.status,
         classId,
       });
