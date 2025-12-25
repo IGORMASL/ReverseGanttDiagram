@@ -326,7 +326,7 @@ export default function ClassDetailsPage() {
                   className="w-auto h-9 px-4 py-2 flex items-center justify-center rounded-xl border border-gray-300 bg-white text-center text-xs hover:bg-gray-100 transition"
                   onClick={() => setInviteModalOpen(true)}
                 >
-                  Создать ссылку-приглашение
+                  Создать код-приглашение
                 </button>
               )}
             </div>

@@ -20,6 +20,7 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
@@ -37,6 +38,7 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
       const data = await createInvite(classId, payload);
       setInviteLink(data.link);
       setInviteCode(data.inviteId);
+      setCopied(false);
     } catch (err: any) {
       console.error("Ошибка при создании приглашения:", err);
       const message = getErrorMessage(err) || "Не удалось создать приглашение";
@@ -51,17 +53,19 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
     navigator.clipboard
       ?.writeText(text)
       .then(() => {
-        alert("Скопировано в буфер обмена");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       })
       .catch(() => {
-        alert("Не удалось скопировать, скопируйте вручную");
+        // В случае ошибки оставляем поведение без всплывающих окон,
+        // пользователь всё равно видит код и может скопировать вручную.
       });
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Создать ссылку-приглашение</h2>
+        <h2 className="text-xl font-semibold mb-4">Создать код-приглашение</h2>
 
         {/* Роль */}
         <div className="mb-4">
@@ -95,7 +99,7 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
         {/* Время действия */}
         <div className="mb-4">
           <label className="text-sm font-medium mb-1 block">
-            Сколько часов действует ссылка
+            Сколько часов действует код приглашения
           </label>
           <input
             type="number"
@@ -135,33 +139,14 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
           </div>
         </div>
 
-        {/* Сгенерированная ссылка / код */}
-        {inviteLink && (
-          <div className="mb-4">
-            <p className="text-sm font-medium mb-1">Ссылка для приглашения</p>
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                readOnly
-                value={inviteLink}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs"
-              />
-              <button
-                type="button"
-                className="px-3 py-2 text-xs bg-gray-900 text-white rounded-lg hover:bg-black"
-                onClick={() => handleCopy(inviteLink)}
-              >
-                Копировать
-              </button>
-            </div>
-          </div>
-        )}
-
         {inviteCode && (
           <div className="mb-4">
-            <p className="text-xs text-gray-600 mb-1">
-              Или вы можете передать только код приглашения:
-            </p>
+            {copied && (
+              <div className="mb-1 text-xs font-medium text-green-600">
+                Код скопирован
+              </div>
+            )}
+            
             <div className="flex gap-2 items-center">
               <input
                 type="text"
@@ -181,6 +166,19 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
         )}
 
         <div className="flex justify-end gap-2 mt-6">
+          {inviteCode && (
+            <button
+              type="button"
+              onClick={() => {
+                setInviteLink(null);
+                setInviteCode(null);
+                setCopied(false);
+              }}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition text-sm"
+            >
+              Сбросить код
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -195,7 +193,7 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
               disabled={loading}
               className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition text-sm disabled:opacity-50"
             >
-              {loading ? "Создаём..." : "Сгенерировать ссылку"}
+              {loading ? "Создаём..." : "Сгенерировать код"}
             </button>
           )}
         </div>
