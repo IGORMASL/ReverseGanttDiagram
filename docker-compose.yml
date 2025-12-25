@@ -38,8 +38,6 @@ services:
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
-    ports:
-      - "5050:8080"
     networks:
       - gantt-network
       
@@ -55,11 +53,18 @@ services:
       - "80:80"
     networks:
       - gantt-network
-
+  cloudflared:
+      image: cloudflare/cloudflared:latest
+      container_name: gantt-cloudflared
+      restart: always
+      depends_on:
+        - frontend
+      command: tunnel --url http://frontend:80
+      networks:
+        - gantt-network
 
 volumes:
   postgres_data:
-
 
 networks:
   gantt-network:

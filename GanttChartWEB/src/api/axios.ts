@@ -3,7 +3,7 @@ import axios from "axios";
 import { clearAuth } from "./auth";
 
 const api = axios.create({
-  baseURL: "http://localhost:5050/api", 
+  baseURL: "/api", 
   withCredentials: true, 
 });
 
