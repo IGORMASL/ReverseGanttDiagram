@@ -4,6 +4,20 @@
 
 import { AxiosError } from "axios";
 
+function translateKnownMessage(message: string): string {
+  const trimmed = message.trim();
+
+  if (trimmed === "Invalid email or password." || trimmed === "Invalid email or password") {
+    return "Неверный email или пароль";
+  }
+
+  if (trimmed === "Email is already in use." || trimmed === "Email is already in use") {
+    return "Пользователь с таким email уже зарегистрирован";
+  }
+
+  return message;
+}
+
 /**
  * Извлекает сообщение об ошибке из ответа API или объекта ошибки
  */
@@ -23,7 +37,7 @@ export function getErrorMessage(error: unknown): string {
       if (data && typeof data === "object" && "error" in data) {
         const message = (data as { error?: string }).error;
         if (message) {
-          return message;
+          return translateKnownMessage(message);
         }
       }
 
@@ -31,12 +45,12 @@ export function getErrorMessage(error: unknown): string {
       if (data && typeof data === "object" && "message" in data) {
         const message = (data as { message?: string }).message;
         if (message) {
-          return message;
+          return translateKnownMessage(message);
         }
       }
 
       if (typeof data === "string") {
-        return data;
+        return translateKnownMessage(data);
       }
 
       // Если сервер не прислал тела с сообщением, не показываем техническое

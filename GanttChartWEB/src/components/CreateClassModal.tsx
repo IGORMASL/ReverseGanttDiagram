@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import { useEffect, useState } from "react";
+import { useNotification } from "./NotificationProvider";
 
 type ClassModalMode = "create" | "edit";
 
@@ -34,6 +35,7 @@ const CreateClassModal: FC<ClassModalProps> = ({
   const [description, setDescription] = useState(initialDescription ?? "");
   const [color, setColor] = useState(initialColor);
   const [loading, setLoading] = useState(false);
+  const { showNotification } = useNotification();
 
   // Обновляем локальное состояние при открытии / смене редактируемого класса
   useEffect(() => {
@@ -48,7 +50,7 @@ const CreateClassModal: FC<ClassModalProps> = ({
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      alert("Название класса обязательно");
+      showNotification("Название класса обязательно", "error");
       return;
     }
 
@@ -61,7 +63,7 @@ const CreateClassModal: FC<ClassModalProps> = ({
       const message =
         err?.message ??
         "Ошибка при сохранении класса";
-      alert(message);
+      showNotification(message, "error");
     } finally {
       setLoading(false);
     }

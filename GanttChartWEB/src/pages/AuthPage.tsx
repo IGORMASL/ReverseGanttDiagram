@@ -34,9 +34,51 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+    firstName?: string;
+    lastName?: string;
+  }>({});
   const navigate = useNavigate();
 
+  const validate = (): boolean => {
+    const errors: typeof fieldErrors = {};
+
+    if (!email.trim()) {
+      errors.email = "Укажите email";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = "Некорректный email";
+    }
+
+    if (!password.trim()) {
+      errors.password = "Введите пароль";
+    } else if (password.length < 6) {
+      errors.password = "Пароль должен быть не короче 6 символов";
+    }
+
+    if (mode === "register") {
+      if (!firstName.trim()) {
+        errors.firstName = "Укажите имя";
+      }
+      if (!lastName.trim()) {
+        errors.lastName = "Укажите фамилию";
+      }
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async () => {
+    setSubmitError(null);
+
+    const isValid = validate();
+    if (!isValid) {
+      return;
+    }
+
     const body = buildAuthPayload(mode, { email, password, firstName, lastName });
 
     try {
@@ -62,7 +104,7 @@ export default function AuthPage() {
       navigate("/classes");
     } catch (err: any) {
       const message = getErrorMessage(err);
-      alert(message);
+      setSubmitError(message || "Не удалось выполнить запрос. Попробуйте ещё раз.");
       console.error(err);
     }
   };
@@ -75,17 +117,68 @@ export default function AuthPage() {
 
       <div className="flex-1 flex items-center justify-center w-full max-w-md mt-12 mb-20">
         <div className="bg-gray-100 p-8 rounded-2xl shadow-md w-full">
-          <h2 className="text-2xl font-semibold text-black mb-6 text-center">{mode === "login" ? "Войти" : "Регистрация"}</h2>
+          <h2 className="text-2xl font-semibold text-black mb-4 text-center">{mode === "login" ? "Войти" : "Регистрация"}</h2>
 
-          {mode === "register" && (
-            <div className="flex gap-4 mb-4">
-              <Input type="text" placeholder="Имя" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-              <Input type="text" placeholder="Фамилия" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          {submitError && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {submitError}
             </div>
           )}
 
-          <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" />
-          <Input type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" />
+          {mode === "register" && (
+            <div className="flex gap-4 mb-4">
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  placeholder="Имя"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className={fieldErrors.firstName ? "border-red-500 focus:ring-red-500" : ""}
+                />
+                {fieldErrors.firstName && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</p>
+                )}
+              </div>
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  placeholder="Фамилия"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className={fieldErrors.lastName ? "border-red-500 focus:ring-red-500" : ""}
+                />
+                {fieldErrors.lastName && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="mb-4">
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={fieldErrors.email ? "border-red-500 focus:ring-red-500" : ""}
+            />
+            {fieldErrors.email && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <Input
+              type="password"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={fieldErrors.password ? "border-red-500 focus:ring-red-500" : ""}
+            />
+            {fieldErrors.password && (
+              <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+            )}
+          </div>
 
           <Button onClick={handleSubmit}>{mode === "login" ? "Войти" : "Зарегистрироваться"}</Button>
 

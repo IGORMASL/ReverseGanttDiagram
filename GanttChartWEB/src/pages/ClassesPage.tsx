@@ -7,11 +7,13 @@ import CreateClassModal from "../components/CreateClassModal";
 import { useAuth } from "../hooks/useAuth";
 import { useClasses } from "../hooks/useClasses";
 import type { UserClass } from "../api/classes";
+import { useNotification } from "../components/NotificationProvider";
 
 export default function ClassesPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { classes, loading: classesLoading, handleDeleteClass, handleCreateClass, handleUpdateClass } = useClasses(user);
+  const { showNotification } = useNotification();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<UserClass | null>(null);
@@ -29,7 +31,7 @@ export default function ClassesPage() {
       await handleCreateClass(data);
       setModalOpen(false);
     } catch (err: any) {
-      alert(err.message || "Не удалось создать класс");
+      showNotification(err.message || "Не удалось создать класс", "error");
     }
   };
 
@@ -44,7 +46,7 @@ export default function ClassesPage() {
       await handleUpdateClass(editingClass.classId, data);
       setEditingClass(null);
     } catch (err: any) {
-      alert(err.message || "Не удалось изменить класс");
+      showNotification(err.message || "Не удалось изменить класс", "error");
     }
   };
 
@@ -54,9 +56,9 @@ export default function ClassesPage() {
 
     try {
       await handleDeleteClass(classId);
-      alert("Класс удалён");
+      showNotification("Класс удалён", "success");
     } catch (err: any) {
-      alert(err.message || "Ошибка при удалении класса");
+      showNotification(err.message || "Ошибка при удалении класса", "error");
     }
   };
 

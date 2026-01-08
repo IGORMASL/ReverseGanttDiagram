@@ -3,6 +3,7 @@ import type { FC } from "react";
 import { clearAuth } from "../api/auth";
 import logo from "../components/free-icon-gantt-chart-5555321.png";
 import { ChevronDown } from "lucide-react";
+import { useNotification } from "./NotificationProvider";
 
 interface HeaderProps {
   fullName: string;
@@ -24,6 +25,7 @@ const HeaderClasses: FC<HeaderProps> = ({
   showClassAction = true,
 }) => {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const handleAction = () => {
     if (systemRole === "Admin") {
@@ -32,7 +34,7 @@ const HeaderClasses: FC<HeaderProps> = ({
       if (onAddClass) {
         onAddClass();
       } else {
-        alert("Добавить класс (ввести код/ссылку) — реализовать позже.");
+        showNotification("Добавить класс (ввести код) будет реализовано позже", "info");
       }
     }
   };
@@ -44,7 +46,7 @@ const HeaderClasses: FC<HeaderProps> = ({
 
   const handleSearch = () => {
     // TODO: реализовать поиск по классам
-    alert("Поиск будет реализован позже");
+    showNotification("Поиск по классам будет реализован позже", "info");
   };
 
   return (

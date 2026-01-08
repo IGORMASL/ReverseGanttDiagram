@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { type ProjectStatus, ProjectStatusLabels, type Project } from "../api/projects";
 import { getErrorMessage } from "../utils/errorHandling";
+import { useNotification } from "./NotificationProvider";
 
 type ProjectModalMode = "create" | "edit";
 
@@ -36,6 +37,7 @@ const ProjectModal: FC<ProjectModalProps> = ({
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState<ProjectStatus>(0);
   const [loading, setLoading] = useState(false);
+  const { showNotification } = useNotification();
 
   // Обновляем локальное состояние при открытии / смене редактируемого проекта
   useEffect(() => {
@@ -64,17 +66,17 @@ const ProjectModal: FC<ProjectModalProps> = ({
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      alert("Название проекта обязательно");
+      showNotification("Название проекта обязательно", "error");
       return;
     }
 
     if (!startDate || !endDate) {
-      alert("Даты начала и окончания обязательны");
+      showNotification("Даты начала и окончания обязательны", "error");
       return;
     }
 
     if (new Date(startDate) > new Date(endDate)) {
-      alert("Дата начала не может быть позже даты окончания");
+      showNotification("Дата начала не может быть позже даты окончания", "error");
       return;
     }
 
@@ -85,7 +87,7 @@ const ProjectModal: FC<ProjectModalProps> = ({
     } catch (err: any) {
       console.error("Ошибка при сохранении проекта:", err);
       const message = getErrorMessage(err) || "Ошибка при сохранении проекта";
-      alert(message);
+      showNotification(message, "error");
     } finally {
       setLoading(false);
     }

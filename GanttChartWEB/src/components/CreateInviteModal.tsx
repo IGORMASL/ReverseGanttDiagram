@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { useState } from "react";
 import { createInvite, type InviteCreateDto } from "../api/invite";
 import { getErrorMessage } from "../utils/errorHandling";
+import { useNotification } from "./NotificationProvider";
 
 interface CreateInviteModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { showNotification } = useNotification();
 
   if (!isOpen) return null;
 
@@ -42,7 +44,7 @@ const CreateInviteModal: FC<CreateInviteModalProps> = ({
     } catch (err: any) {
       console.error("Ошибка при создании приглашения:", err);
       const message = getErrorMessage(err) || "Не удалось создать приглашение";
-      alert(message);
+      showNotification(message, "error");
     } finally {
       setLoading(false);
     }

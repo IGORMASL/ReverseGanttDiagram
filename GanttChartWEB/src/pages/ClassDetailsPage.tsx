@@ -13,11 +13,14 @@ import { useClassDetails } from "../hooks/useClassDetails";
 import { isSystemAdmin } from "../utils/permissions";
 import type { Project } from "../api/projects";
 import type { MembersFilter } from "../types";
+import { useNotification } from "../components/NotificationProvider";
+import { getErrorMessage } from "../utils/errorHandling";
 
 export default function ClassDetailsPage() {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showNotification } = useNotification();
 
   const {
     details,
@@ -51,10 +54,10 @@ export default function ClassDetailsPage() {
 
     try {
       await handleDeleteClass();
-      alert("Класс удалён");
+      showNotification("Класс удалён", "success");
       navigate("/classes");
     } catch (err: any) {
-      alert(err.message || "Не удалось удалить класс");
+      showNotification(err.message || "Не удалось удалить класс", "error");
     }
   };
 
@@ -67,17 +70,29 @@ export default function ClassDetailsPage() {
       await handleUpdateClass(data);
       setEditModalOpen(false);
     } catch (err: any) {
-      alert(err.message || "Не удалось изменить класс");
+      showNotification(err.message || "Не удалось изменить класс", "error");
     }
   };
 
   const onInvite = async () => {
-    if (!classId || !inviteEmail.trim()) return;
+    if (!classId) return;
+
+    const email = inviteEmail.trim();
+    if (!email) {
+      showNotification("Укажите email участника", "error");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showNotification("Укажите корректный email участника", "error");
+      return;
+    }
 
     setInviteLoading(true);
     try {
       await addMemberToClass(classId, {
-        email: inviteEmail.trim(),
+        email,
         role: inviteRole,
       });
 
@@ -85,10 +100,17 @@ export default function ClassDetailsPage() {
       setDetails((prev: ClassDetails | null) => (prev ? { ...prev, members } : prev));
 
       setInviteEmail("");
-      alert("Участник добавлен в класс");
+      showNotification("Участник добавлен в класс", "success");
     } catch (err: any) {
       console.error("Ошибка добавления участника:", err);
-      alert(err.message || "Не удалось добавить участника");
+      // Если сервер вернул 404 (например, пользователь с таким email не найден),
+      // показываем дружелюбное сообщение вместо сырой 404-ошибки.
+      if (err && typeof err === "object" && "response" in err && (err as any).response?.status === 404) {
+        showNotification("Пользователь с таким email не найден в системе", "error");
+      } else {
+        const message = getErrorMessage(err) || "Не удалось добавить участника";
+        showNotification(message, "error");
+      }
     } finally {
       setInviteLoading(false);
     }
@@ -105,7 +127,7 @@ export default function ClassDetailsPage() {
       await handleCreateProject(data);
       setProjectModalOpen(false);
     } catch (err: any) {
-      alert(err.message || "Не удалось создать проект");
+      showNotification(err.message || "Не удалось создать проект", "error");
     }
   };
 
@@ -118,10 +140,10 @@ export default function ClassDetailsPage() {
       await deleteMemberFromClass(classId, memberId);
       const members = await getClassMembers(classId);
       setDetails((prev: ClassDetails | null) => (prev ? { ...prev, members } : prev));
-      alert("Участник удалён из класса");
+      showNotification("Участник удалён из класса", "success");
     } catch (err: any) {
       console.error("Ошибка удаления участника:", err);
-      alert(err.message || "Не удалось удалить участника");
+      showNotification(err.message || "Не удалось удалить участника", "error");
     }
   };
 
@@ -139,7 +161,7 @@ export default function ClassDetailsPage() {
       setProjectModalOpen(false);
       setEditingProject(null);
     } catch (err: any) {
-      alert(err.message || "Не удалось изменить проект");
+      showNotification(err.message || "Не удалось изменить проект", "error");
     }
   };
 
@@ -149,9 +171,9 @@ export default function ClassDetailsPage() {
 
     try {
       await handleDeleteProject(projectId);
-      alert("Проект удалён");
+      showNotification("Проект удалён", "success");
     } catch (err: any) {
-      alert(err.message || "Не удалось удалить проект");
+      showNotification(err.message || "Не удалось удалить проект", "error");
     }
   };
 

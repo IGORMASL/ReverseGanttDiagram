@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useInvite } from "../api/invite";
 import Button from "./Button";
 import { getErrorMessage } from "../utils/errorHandling";
+import { useNotification } from "./NotificationProvider";
 
 interface JoinClassModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface JoinClassModalProps {
 const JoinClassModal: FC<JoinClassModalProps> = ({ isOpen, onClose }) => {
   const [codeOrLink, setCodeOrLink] = useState("");
   const [loading, setLoading] = useState(false);
+  const { showNotification } = useNotification();
 
   if (!isOpen) return null;
 
@@ -37,21 +39,21 @@ const JoinClassModal: FC<JoinClassModalProps> = ({ isOpen, onClose }) => {
   const handleJoin = async () => {
     const inviteId = extractInviteId(codeOrLink);
     if (!inviteId) {
-      alert("Введите корректную ссылку или код приглашения");
+      showNotification("Введите корректный код приглашения", "error");
       return;
     }
 
     try {
       setLoading(true);
       const message = await useInvite(inviteId);
-      alert(message || "Вы успешно добавлены в класс");
+      showNotification(message || "Вы успешно добавлены в класс", "success");
       onClose();
       // После успешного присоединения достаточно обновить страницу списков классов
       window.location.href = "/classes";
     } catch (err: any) {
       console.error("Ошибка при присоединении к классу по приглашению:", err);
       const message = getErrorMessage(err) || "Не удалось присоединиться к классу";
-      alert(message);
+      showNotification(message, "error");
     } finally {
       setLoading(false);
     }
@@ -63,13 +65,13 @@ const JoinClassModal: FC<JoinClassModalProps> = ({ isOpen, onClose }) => {
         <h2 className="text-xl font-semibold mb-4">Добавить класс по приглашению</h2>
 
         <p className="text-sm text-gray-600 mb-3">
-          Вставьте ссылку-приглашение или код, который вы получили от учителя или
+          Вставьте код приглашения, который вы получили от учителя или
           администратора.
         </p>
 
         <textarea
           className="w-full min-h-[80px] mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm resize-none"
-          placeholder="Ссылка или код приглашения"
+          placeholder="Код приглашения"
           value={codeOrLink}
           onChange={(e) => setCodeOrLink(e.target.value)}
         />

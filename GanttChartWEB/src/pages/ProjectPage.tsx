@@ -21,11 +21,13 @@ import {
   updateTask,
   deleteTask as deleteTaskApi,
 } from "../api/tasks";
+import { useNotification } from "../components/NotificationProvider";
 
 export default function ProjectPage() {
   const { projectId, classId } = useParams<{ projectId: string; classId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showNotification } = useNotification();
 
   const {
     project,
@@ -243,7 +245,7 @@ export default function ProjectPage() {
 
   const openCreateTask = () => {
     if (!targetTeamId) {
-      alert("Сначала выберите команду");
+      showNotification("Сначала выберите команду", "info");
       return;
     }
     setTaskModalMode("create");
@@ -266,7 +268,7 @@ export default function ProjectPage() {
 
   const handleCreateChildTask = (parent: TaskTree) => {
     if (!targetTeamId) {
-      alert("Сначала выберите команду");
+      showNotification("Сначала выберите команду", "info");
       return;
     }
 
@@ -486,7 +488,7 @@ export default function ProjectPage() {
       }
     } catch (err: any) {
       console.error("Ошибка при удалении задачи:", err);
-      alert(err.message || "Не удалось удалить задачу");
+      showNotification(err.message || "Не удалось удалить задачу", "error");
     }
   };
 
@@ -508,15 +510,15 @@ export default function ProjectPage() {
 
   const handleTaskSave = async () => {
     if (!title.trim()) {
-      alert("Название обязательно");
+      showNotification("Название обязательно", "error");
       return;
     }
     if (!startDate || !endDate) {
-      alert("Укажите даты");
+      showNotification("Укажите даты", "error");
       return;
     }
     if (new Date(startDate) > new Date(endDate)) {
-      alert("Дата начала не может быть позже окончания");
+      showNotification("Дата начала не может быть позже окончания", "error");
       return;
     }
 
@@ -529,8 +531,9 @@ export default function ProjectPage() {
     if (taskStart < projectStart || taskEnd > projectEnd) {
       const projectStartStr = project!.startDate.slice(0, 10);
       const projectEndStr = project!.endDate.slice(0, 10);
-      alert(
-        `Даты задачи должны находиться в пределах дат проекта: с ${projectStartStr} по ${projectEndStr}.`
+      showNotification(
+        `Даты задачи должны находиться в пределах дат проекта: с ${projectStartStr} по ${projectEndStr}.`,
+        "error"
       );
       return;
     }
@@ -543,12 +546,13 @@ export default function ProjectPage() {
         const parentEnd = new Date(formatDateForInput(parentTask.endDate));
 
         if (taskStart < parentStart || taskEnd > parentEnd) {
-          alert(
+          showNotification(
             `Даты задачи должны находиться в пределах дат родительской задачи: с ${new Date(
               parentTask.startDate
             ).toLocaleDateString("ru-RU")} по ${new Date(
               parentTask.endDate
-            ).toLocaleDateString("ru-RU")}.`
+            ).toLocaleDateString("ru-RU")}.`,
+            "error"
           );
           return;
         }
@@ -559,15 +563,17 @@ export default function ProjectPage() {
     if (type === 1 || type === 2) {
       if (!parentTaskId) {
         if (type === 1) {
-          alert(
-            "Для задачи типа \"задача\" необходимо выбрать родительскую задачу типа \"результат\". Сначала создайте задачу-результат."
+          showNotification(
+            "Для задачи типа \"задача\" необходимо выбрать родительскую задачу типа \"результат\". Сначала создайте задачу-результат.",
+            "error"
           );
         } else if (type === 2) {
-          alert(
-            "Для задачи типа \"подзадача\" необходимо выбрать родительскую задачу типа \"задача\". Сначала создайте обычную задачу."
+          showNotification(
+            "Для задачи типа \"подзадача\" необходимо выбрать родительскую задачу типа \"задача\". Сначала создайте обычную задачу.",
+            "error"
           );
         } else {
-          alert("Для задачи этого типа необходимо выбрать родительскую задачу");
+          showNotification("Для задачи этого типа необходимо выбрать родительскую задачу", "error");
         }
         return;
       }
@@ -599,7 +605,7 @@ export default function ProjectPage() {
       }
     } catch (err) {
       console.error(err);
-      alert("Не удалось сохранить задачу");
+      showNotification("Не удалось сохранить задачу", "error");
     } finally {
       setSavingTask(false);
     }
@@ -621,9 +627,9 @@ export default function ProjectPage() {
     try {
       await handleCreateTeam(newTeamName.trim());
       setNewTeamName("");
-      alert("Команда создана");
+      showNotification("Команда создана", "success");
     } catch (err: any) {
-      alert(err.message || "Не удалось создать команду");
+      showNotification(err.message || "Не удалось создать команду", "error");
     } finally {
       setCreatingTeam(false);
     }
@@ -634,7 +640,7 @@ export default function ProjectPage() {
 
     const member = classMembers.find((m) => m.email === selectedMemberEmail.trim());
     if (!member || !member.id) {
-      alert("Участник с таким email не найден в классе");
+      showNotification("Участник с таким email не найден в классе", "error");
       return;
     }
 
@@ -642,9 +648,12 @@ export default function ProjectPage() {
       await handleAddMemberToTeam(selectedTeamForMember, member.id);
       setSelectedMemberEmail("");
       setSelectedTeamForMember(null);
-      alert("Участник добавлен в команду. Студенту нужно обновить страницу класса, чтобы увидеть проект.");
+      showNotification(
+        "Участник добавлен в команду. Студенту нужно обновить страницу класса, чтобы увидеть проект.",
+        "success"
+      );
     } catch (err: any) {
-      alert(err.message || "Не удалось добавить участника");
+      showNotification(err.message || "Не удалось добавить участника", "error");
     }
   };
 
@@ -658,9 +667,9 @@ export default function ProjectPage() {
     try {
       await handleUpdateProject(data);
       setProjectModalOpen(false);
-      alert("Проект успешно обновлен");
+      showNotification("Проект успешно обновлён", "success");
     } catch (err: any) {
-      alert(err.message || "Не удалось обновить проект");
+      showNotification(err.message || "Не удалось обновить проект", "error");
     }
   };
 
@@ -672,10 +681,10 @@ export default function ProjectPage() {
     setDeletingProject(true);
     try {
       await handleDeleteProject();
-      alert("Проект успешно удален");
+      showNotification("Проект успешно удалён", "success");
       navigate(`/classes/${classId}`);
     } catch (err: any) {
-      alert(err.message || "Не удалось удалить проект");
+      showNotification(err.message || "Не удалось удалить проект", "error");
     } finally {
       setDeletingProject(false);
     }
