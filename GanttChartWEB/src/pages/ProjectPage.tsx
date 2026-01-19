@@ -232,6 +232,45 @@ export default function ProjectPage() {
     }
   }, [type, parentOptions, parentTaskId]);
 
+  // Валидация зависимостей
+  const validateDependencies = (dependencies: string[], startDate: string): string[] => {
+    const errors: string[] = [];
+    
+    dependencies.forEach(depId => {
+      const dependencyTask = flatTasksForForm.find(t => t.id === depId);
+      if (!dependencyTask) return;
+      
+      const depEndDate = dependencyTask.endDate.slice(0, 10);
+      
+      // Проверяем, что текущая задача начинается после окончания зависимости
+      if (depEndDate >= startDate) {
+        errors.push(`Задача "${dependencyTask.title}" заканчивается ${depEndDate}, но текущая задача начинается ${startDate}. Зависимость должна заканчиваться раньше начала текущей задачи.`);
+      }
+    });
+    
+    return errors;
+  };
+
+  const validateDependentTasks = (currentTaskId: string, endDate: string): string[] => {
+    const errors: string[] = [];
+    
+    // Находим задачи, которые зависят от текущей
+    const dependentTasks = flatTasksForForm.filter(t => 
+      t.dependencies.includes(currentTaskId) && t.id !== currentTaskId
+    );
+    
+    dependentTasks.forEach(task => {
+      const taskStartDate = task.startDate.slice(0, 10);
+      
+      // Проверяем, что зависимая задача начинается после окончания текущей
+      if (taskStartDate <= endDate) {
+        errors.push(`Задача "${task.title}" зависит от текущей и начинается ${taskStartDate}, но текущая задача заканчивается ${endDate}. Зависимая задача должна начинаться после окончания текущей задачи.`);
+      }
+    });
+    
+    return errors;
+  };
+
   const toggleSelection = (list: string[], value: string) =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
@@ -586,6 +625,22 @@ export default function ProjectPage() {
         } else {
           showNotification("Для задачи этого типа необходимо выбрать родительскую задачу", "error");
         }
+        return;
+      }
+    }
+
+    // Валидация зависимостей
+    const dependencyErrors = validateDependencies(selectedDependencies, startDate);
+    if (dependencyErrors.length > 0) {
+      showNotification("Некорректные зависимости:\n" + dependencyErrors.join("\n"), "error");
+      return;
+    }
+    
+    // Валидация зависимых задач (только при редактировании)
+    if (taskModalMode === "edit" && editingTask) {
+      const dependentErrors = validateDependentTasks(editingTask.id, endDate);
+      if (dependentErrors.length > 0) {
+        showNotification("Нарушены зависимости у других задач:\n" + dependentErrors.join("\n"), "error");
         return;
       }
     }

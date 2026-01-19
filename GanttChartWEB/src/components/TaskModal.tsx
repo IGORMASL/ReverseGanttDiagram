@@ -141,6 +141,44 @@ export default function TaskModal({
 
   if (!isOpen) return null;
 
+  const validateDependencies = (dependencies: string[], startDate: string): string[] => {
+    const errors: string[] = [];
+    
+    dependencies.forEach(depId => {
+      const dependencyTask = flatTasks.find(t => t.id === depId);
+      if (!dependencyTask) return;
+      
+      const depEndDate = dependencyTask.endDate.slice(0, 10);
+      
+      // Проверяем, что текущая задача начинается после окончания зависимости
+      if (depEndDate >= startDate) {
+        errors.push(`Задача "${dependencyTask.title}" заканчивается ${depEndDate}, но текущая задача начинается ${startDate}. Зависимость должна заканчиваться раньше начала текущей задачи.`);
+      }
+    });
+    
+    return errors;
+  };
+
+  const validateDependentTasks = (currentTaskId: string, endDate: string): string[] => {
+    const errors: string[] = [];
+    
+    // Находим задачи, которые зависят от текущей
+    const dependentTasks = flatTasks.filter(t => 
+      t.dependencies.includes(currentTaskId) && t.id !== currentTaskId
+    );
+    
+    dependentTasks.forEach(task => {
+      const taskStartDate = task.startDate.slice(0, 10);
+      
+      // Проверяем, что зависимая задача начинается после окончания текущей
+      if (taskStartDate <= endDate) {
+        errors.push(`Задача "${task.title}" зависит от текущей и начинается ${taskStartDate}, но текущая задача заканчивается ${endDate}. Зависимая задача должна начинаться после окончания текущей.`);
+      }
+    });
+    
+    return errors;
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       alert("Название обязательно");
@@ -154,6 +192,23 @@ export default function TaskModal({
       alert("Дата начала не может быть позже окончания");
       return;
     }
+    
+    // Валидация зависимостей
+    const dependencyErrors = validateDependencies(selectedDependencies, startDate);
+    if (dependencyErrors.length > 0) {
+      alert("Некорректные зависимости:\n" + dependencyErrors.join("\n"));
+      return;
+    }
+    
+    // Валидация зависимых задач (только при редактировании)
+    if (mode === "edit" && initialTask) {
+      const dependentErrors = validateDependentTasks(initialTask.id, endDate);
+      if (dependentErrors.length > 0) {
+        alert("Нарушены зависимости у других задач:\n" + dependentErrors.join("\n"));
+        return;
+      }
+    }
+    
     setLoading(true);
     try {
       await Promise.resolve(
