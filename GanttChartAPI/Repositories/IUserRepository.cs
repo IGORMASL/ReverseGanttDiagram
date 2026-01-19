@@ -9,5 +9,6 @@ namespace GanttChartAPI.Repositories
         Task AddAsync(User user);
         Task<List<User>> GetAllAsync();
         Task<List<ClassRole>> GetUserClassRolesAsync(Guid userId);
+        Task UpdateAsync(User user);
     }
 }

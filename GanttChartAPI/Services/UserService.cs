@@ -68,6 +68,38 @@ namespace GanttChartAPI.Services
                 Role = (int)user.Role
             };
         }
-
+        public async Task UpdateNameAsync(Guid userId, UpdateNameDto dto)
+        {
+            var user = await _repo.GetByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID {UserId} not found for name update.", userId);
+                throw new KeyNotFoundException($"User not found.");
+            }
+            user.FullName = dto.FullName;
+            await _repo.UpdateAsync(user);
+        }
+        public async Task<bool> VerifyPasswordAsync(Guid userId, VerifyPasswordDto dto)
+        {
+            var user = await _repo.GetByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID {UserId} not found for password verification.", userId);
+                throw new KeyNotFoundException($"User not found.");
+            }
+            return PasswordHasher.Verify(user.PasswordHash, dto.CurrentPassword);
+        }
+        public async Task UpdatePasswordAsync(Guid userId, UpdatePasswordDto dto)
+        {
+            var user = await _repo.GetByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID {UserId} not found for password update.", userId);
+                throw new KeyNotFoundException($"User not found.");
+            }
+            var newHashedPassword = PasswordHasher.Hash(dto.NewPassword);
+            user.PasswordHash = newHashedPassword;
+            await _repo.UpdateAsync(user);
+        }
     }
 }
