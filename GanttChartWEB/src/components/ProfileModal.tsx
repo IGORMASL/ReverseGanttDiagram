@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { updateProfileName, verifyCurrentPassword, updatePassword } from "../api/users";
 import FieldError from "./FieldError";
+import { useAuth } from "../hooks/useAuth";
 
 type ProfileModalProps = {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"view" | "editName" | "editPassword">("view");
+  const { user, setUser } = useAuth();
   
   // Состояния для ошибок полей
   const [nameError, setNameError] = useState("");
@@ -28,8 +30,9 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
   // Инициализация данных при открытии модального окна или изменении начальных данных
   useEffect(() => {
     if (isOpen) {
-      setName(initialName);
-      setEmail(initialEmail);
+      // Используем реальные данные из useAuth если они есть
+      setName(user?.fullName || initialName);
+      setEmail(user?.email || initialEmail);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -41,7 +44,7 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
       setConfirmPasswordError("");
       setSuccessMessage("");
     }
-  }, [isOpen, initialName, initialEmail]);
+  }, [isOpen, user, initialName, initialEmail]);
 
   // Автоматически скрываем success сообщение через 3 секунды
   useEffect(() => {
@@ -67,9 +70,16 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
     try {
       await updateProfileName(name);
       setSuccessMessage("Имя успешно изменено");
-      setMode("view");
+      
+      // Обновляем данные в useAuth
+      if (user && setUser) {
+        setUser({ ...user, fullName: name });
+      }
+      
       // Обновляем имя в localStorage чтобы оно отобразилось в хедере
       localStorage.setItem("fullName", name);
+      
+      setMode("view");
     } catch (err) {
       console.error(err);
       setNameError("Не удалось изменить имя");
@@ -105,7 +115,8 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
     try {
       // Проверяем текущий пароль
       const isValid = await verifyCurrentPassword(currentPassword);
-      if (!isValid) {
+      
+      if (!isValid || isValid === undefined) {
         setCurrentPasswordError("Неверный текущий пароль");
         return;
       }
@@ -118,7 +129,7 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
       setConfirmPassword("");
       setMode("view");
     } catch (err) {
-      console.error(err);
+      console.error("Ошибка при смене пароля:", err);
       setCurrentPasswordError("Не удалось изменить пароль. Проверьте правильность текущего пароля.");
     } finally {
       setLoading(false);
@@ -136,8 +147,8 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
     setNewPasswordError("");
     setConfirmPasswordError("");
     setSuccessMessage("");
-    // Возвращаем исходные данные
-    setName(initialName);
+    // Возвращаем исходные данные из useAuth
+    setName(user?.fullName || initialName);
   };
 
   if (!isOpen) return null;
@@ -203,7 +214,7 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
         )}
 
         {mode === "editName" && (
-          <div className="space-y-4">
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleNameChange(); }}>
             <div>
               <label className="block text-sm text-gray-700 mb-1">Новое имя</label>
               <FieldError message={nameError} visible={!!nameError} onHide={() => setNameError("")} />
@@ -220,29 +231,31 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
 
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={handleCancel}
                 className="flex-1 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
               >
                 Отмена
               </button>
               <button
-                onClick={handleNameChange}
+                type="submit"
                 disabled={loading}
                 className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition disabled:opacity-50"
               >
                 {loading ? "Сохраняем..." : "Сохранить"}
               </button>
             </div>
-          </div>
+          </form>
         )}
 
         {mode === "editPassword" && (
-          <div className="space-y-4">
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}>
             <div>
               <label className="block text-sm text-gray-700 mb-1">Текущий пароль</label>
               <FieldError message={currentPasswordError} visible={!!currentPasswordError} onHide={() => setCurrentPasswordError("")} />
               <input
                 type="password"
+                autoComplete="current-password"
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                   currentPasswordError ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -257,6 +270,7 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
               <FieldError message={newPasswordError} visible={!!newPasswordError} onHide={() => setNewPasswordError("")} />
               <input
                 type="password"
+                autoComplete="new-password"
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                   newPasswordError ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -271,6 +285,7 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
               <FieldError message={confirmPasswordError} visible={!!confirmPasswordError} onHide={() => setConfirmPasswordError("")} />
               <input
                 type="password"
+                autoComplete="new-password"
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black ${
                   confirmPasswordError ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -282,20 +297,21 @@ export default function ProfileModal({ isOpen, onClose, initialName = "", initia
 
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={handleCancel}
                 className="flex-1 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
               >
                 Отмена
               </button>
               <button
-                onClick={handlePasswordChange}
+                type="submit"
                 disabled={loading}
                 className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition disabled:opacity-50"
               >
                 {loading ? "Сохраняем..." : "Изменить пароль"}
               </button>
             </div>
-          </div>
+          </form>
         )}
       </div>
     </div>

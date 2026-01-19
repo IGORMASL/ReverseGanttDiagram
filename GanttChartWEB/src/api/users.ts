@@ -21,10 +21,33 @@ export async function updateProfileName(newName: string): Promise<void> {
 
 // POST /api/user/profile/verify-password - проверка текущего пароля
 export async function verifyCurrentPassword(currentPassword: string): Promise<boolean> {
-  const res = await api.post<{ valid: boolean }>("/user/profile/verify-password", { 
-    currentPassword 
-  });
-  return res.data.valid;
+  try {
+    const res = await api.post("/user/profile/verify-password", { 
+      currentPassword 
+    });
+    
+    // Бэкенд может возвращать разные форматы:
+    // 1. Просто boolean: true/false
+    // 2. Объект с valid: { valid: true }
+    // 3. Объект с data: { data: true }
+    let result: boolean;
+    
+    if (typeof res.data === 'boolean') {
+      // Просто boolean
+      result = res.data;
+    } else if (res.data && typeof res.data === 'object') {
+      // Объект
+      result = res.data.data !== undefined ? res.data.data : res.data.valid;
+    } else {
+      // Неизвестный формат
+      result = false;
+    }
+    
+    return result || false;
+  } catch (error) {
+    console.error("Ошибка при проверке пароля:", error);
+    throw error;
+  }
 }
 
 // PUT /api/user/profile/password - изменение пароля

@@ -31,6 +31,6 @@ export function useAuth() {
     fetchProfile();
   }, []);
 
-  return { user, loading, error };
+  return { user, loading, error, setUser };
 }
 

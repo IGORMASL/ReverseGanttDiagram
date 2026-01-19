@@ -12,8 +12,6 @@ interface HeaderProps {
   systemRole: "User" | "Admin";
   onCreateClass?: () => void;
   onAddClass?: () => void;
-  /** Показывать ли поиск по классам (по умолчанию true) */
-  showSearch?: boolean;
   /** Показывать ли кнопку создания/добавления класса (по умолчанию true) */
   showClassAction?: boolean;
 }
@@ -23,7 +21,6 @@ const HeaderClasses: FC<HeaderProps> = ({
   systemRole,
   onCreateClass,
   onAddClass,
-  showSearch = true,
   showClassAction = true,
 }) => {
   const navigate = useNavigate();
@@ -48,11 +45,6 @@ const HeaderClasses: FC<HeaderProps> = ({
     navigate("/auth");
   };
 
-  const handleSearch = () => {
-    // TODO: реализовать поиск по классам
-    showNotification("Поиск по классам будет реализован позже", "info");
-  };
-
   const handleOpenProfile = () => {
     setIsProfileModalOpen(true);
   };
@@ -70,27 +62,6 @@ const HeaderClasses: FC<HeaderProps> = ({
           <h1 className="text-xl font-semibold">Реверсивная диаграмма Ганта</h1>
         </Link>
 
-        {/* Поиск (опционально) */}
-        {showSearch && (
-          <div className="flex-1 flex justify-start px-8 mx-20">
-            <div className="flex items-center gap-3 w-full max-w-md">
-              <input
-                type="text"
-                placeholder="Поиск по классам..."
-                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm shadow-sm
-                           focus:ring-2 focus:ring-black outline-none transition"
-              />
-              <button
-                onClick={handleSearch}
-                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-black hover:text-white
-                           border border-gray-300 shadow-sm transition text-sm"
-              >
-                Найти
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Блок действий и профиля */}
         <div className="flex items-center gap-6">
           {showClassAction && (
@@ -105,7 +76,7 @@ const HeaderClasses: FC<HeaderProps> = ({
           {/* Меню профиля */}
           <div className="relative group">
             <button className="flex items-center gap-2 font-medium cursor-pointer focus:outline-none">
-              {fullName || "Пользователь"}
+              {user?.fullName || fullName || "Пользователь"}
               <ChevronDown size={16} />
             </button>
 

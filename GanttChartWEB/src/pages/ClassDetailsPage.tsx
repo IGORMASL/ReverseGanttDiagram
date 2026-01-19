@@ -198,7 +198,6 @@ export default function ClassDetailsPage() {
       <HeaderClasses
         fullName={user.fullName}
         systemRole={isAdmin ? "Admin" : "User"}
-        showSearch={false}
         showClassAction={false}
       />
 

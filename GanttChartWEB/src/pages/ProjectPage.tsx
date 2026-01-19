@@ -722,7 +722,6 @@ export default function ProjectPage() {
       <HeaderClasses
         fullName={user.fullName}
         systemRole={isAdmin ? "Admin" : "User"}
-        showSearch={false}
         showClassAction={false}
       />
 
