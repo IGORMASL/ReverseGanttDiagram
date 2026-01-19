@@ -36,5 +36,10 @@ namespace GanttChartAPI.Repositories
                 .Where(r => r.UserId == userId)
                 .ToListAsync();
         }
+        public async Task UpdateAsync(User user)
+        {
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
     }
 }
