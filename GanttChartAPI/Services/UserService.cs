@@ -1,4 +1,6 @@
-﻿using GanttChartAPI.Models;
+﻿using GanttChartAPI.DTOs;
+using GanttChartAPI.Instruments;
+using GanttChartAPI.Models;
 using GanttChartAPI.Repositories;
 using GanttChartAPI.ViewModels;
 using System.Data;
