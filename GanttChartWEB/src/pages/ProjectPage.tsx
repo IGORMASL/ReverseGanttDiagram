@@ -271,6 +271,45 @@ export default function ProjectPage() {
     return errors;
   };
 
+  const validateChildTasksFit = (currentTaskId: string, newStartDate: string, newEndDate: string): string[] => {
+    const errors: string[] = [];
+    
+    // Находим текущую задачу в дереве
+    const currentTask = flatTasksForForm.find(t => t.id === currentTaskId);
+    if (!currentTask) return errors;
+    
+    // Рекурсивная функция для поиска всех дочерних задач
+    const findAllChildTasks = (task: TaskTree): TaskTree[] => {
+      const children: TaskTree[] = [];
+      
+      const traverse = (t: TaskTree) => {
+        if (t.subtasks && t.subtasks.length > 0) {
+          t.subtasks.forEach(child => {
+            children.push(child);
+            traverse(child);
+          });
+        }
+      };
+      
+      traverse(task);
+      return children;
+    };
+    
+    const childTasks = findAllChildTasks(currentTask);
+    
+    childTasks.forEach(child => {
+      const childStart = child.startDate.slice(0, 10);
+      const childEnd = child.endDate.slice(0, 10);
+      
+      // Проверяем, что дочерняя задача полностью входит в новый диапазон родительской
+      if (childStart < newStartDate || childEnd > newEndDate) {
+        errors.push(`Дочерняя задача "${child.title}" (${childStart} - ${childEnd}) не входит в новый диапазон дат родительской задачи (${newStartDate} - ${newEndDate}).`);
+      }
+    });
+    
+    return errors;
+  };
+
   const toggleSelection = (list: string[], value: string) =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
@@ -642,6 +681,15 @@ export default function ProjectPage() {
       if (dependentErrors.length > 0) {
         showNotification("Нарушены зависимости у других задач:\n" + dependentErrors.join("\n"), "error");
         return;
+      }
+      
+      // Валидация дочерних задач (только для родительских задач при редактировании)
+      if (editingTask.type === 0 || editingTask.type === 1) {
+        const childFitErrors = validateChildTasksFit(editingTask.id, startDate, endDate);
+        if (childFitErrors.length > 0) {
+          showNotification("Некоторые дочерние задачи не входят в новый диапазон дат:\n" + childFitErrors.join("\n"), "error");
+          return;
+        }
       }
     }
 
