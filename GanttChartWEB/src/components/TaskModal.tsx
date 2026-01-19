@@ -95,7 +95,6 @@ export default function TaskModal({
 
   const dependencyOptions = useMemo(() => {
     const selfId = initialTask?.id;
-    const currentStart = startDate ? new Date(startDate) : null;
 
     return flatTasks.filter((t) => {
       if (t.id === selfId) return false;
@@ -103,14 +102,19 @@ export default function TaskModal({
       // Можно начинать только после задач того же типа
       if (t.type !== type) return false;
 
-      // Если дата начала текущей задачи не выбрана, не фильтруем по времени
-      if (!currentStart) return true;
+      // Зависимости можно выбирать только в пределах одного родительского блока
+      if (t.parentTaskId !== parentTaskId) return false;
 
-      // Нельзя начинать задачу после той, которая заканчивается позже дедлайна текущей
-      const dependencyEnd = new Date(t.endDate);
-      return dependencyEnd <= currentStart;
+      // Если дата начала текущей задачи не выбрана, не фильтруем по времени
+      if (!startDate) return true;
+
+      // Нельзя начинать задачу после той, которая заканчивается позже или в тот же день, что и начало текущей
+      // Сравниваем только даты без учета времени и часовых поясов
+      const dependencyEndDate = t.endDate.slice(0, 10); // Берем только дату из YYYY-MM-DD...
+      const currentStartDate = startDate; // Уже в формате YYYY-MM-DD
+      return dependencyEndDate < currentStartDate;
     });
-  }, [flatTasks, initialTask?.id, type, startDate]);
+  }, [flatTasks, initialTask?.id, type, startDate, parentTaskId]);
 
   const parentOptions = useMemo(() => {
     const selfId = initialTask?.id;

@@ -163,16 +163,24 @@ export default function ProjectPage() {
 
   const dependencyOptions = useMemo(() => {
     const selfId = editingTask?.id;
-    const currentStart = startDate ? new Date(startDate) : null;
 
     return flatTasksForForm.filter((t) => {
       if (t.id === selfId) return false;
       if (t.type !== type) return false;
-      if (!currentStart) return true;
-      const dependencyEnd = new Date(t.endDate);
-      return dependencyEnd <= currentStart;
+      
+      // Зависимости можно выбирать только в пределах одного родительского блока
+      if (t.parentTaskId !== parentTaskId) return false;
+      
+      // Если дата начала текущей задачи не выбрана, не фильтруем по времени
+      if (!startDate) return true;
+      
+      // Нельзя начинать задачу после той, которая заканчивается позже или в тот же день, что и начало текущей
+      // Сравниваем только даты без учета времени и часовых поясов
+      const dependencyEndDate = t.endDate.slice(0, 10); // Берем только дату из YYYY-MM-DD...
+      const currentStartDate = startDate; // Уже в формате YYYY-MM-DD
+      return dependencyEndDate < currentStartDate;
     });
-  }, [flatTasksForForm, editingTask?.id, type, startDate]);
+  }, [flatTasksForForm, editingTask?.id, type, startDate, parentTaskId]);
 
   const parentOptions = useMemo(() => {
     const selfId = editingTask?.id;
@@ -387,11 +395,14 @@ export default function ProjectPage() {
 
     if (taskModalMode === "create") {
       // Создаём задачу через API
+      // Добавляем время UTC чтобы избежать проблем с часовыми поясами
+      const utcStartDate = data.startDate + 'T00:00:00Z';
+      const utcEndDate = data.endDate + 'T00:00:00Z';
       await createTask({
         title: data.title,
         description: data.description,
-        startDate: data.startDate,
-        endDate: data.endDate,
+        startDate: utcStartDate,
+        endDate: utcEndDate,
         type: data.type as TaskType,
         status: data.status as TaskStatus,
         parentTaskId: data.parentTaskId ?? null,
@@ -431,8 +442,8 @@ export default function ProjectPage() {
       await updateTask(editingTask.id, {
         title: data.title,
         description: data.description,
-        startDate: data.startDate,
-        endDate: data.endDate,
+        startDate: data.startDate + 'T00:00:00Z',
+        endDate: data.endDate + 'T00:00:00Z',
         type: data.type as TaskType,
         status: data.status as TaskStatus,
         parentTaskId: finalParentTaskId,
